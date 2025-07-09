@@ -1,0 +1,317 @@
+/* ----------------| Import Font : Montserrat |----------------------- */
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap");
+
+/* ----------------| Import Font : Raleway |----------------------- */
+@import url("https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap");
+
+/* ----------------| Import Tailwind CSS |----------------------- */
+@import "tailwindcss";
+
+/* ----------------| Root Variables |----------------------- */
+:root {
+  /* -- Colors -- */
+  --scrollbar-thumb: #005fee;
+  --scrollbar-track: #ffffff;
+  --scrollbar-hover: #3583f7;
+  --scrollbar-gray: #7e7e7e;
+  --fg: #4c4c4c;
+  --bg: #fcfcfc;
+  --pri: #005fee;
+  --pri-light: #3583f7;
+  --pri-lighter: #6aa6ff;
+  --text: #000;
+  --placeholder: #000;
+
+  /* -- Scrollbar -- */
+  --scrollbar-width: 8px;
+
+  /* -- Default -- */
+  --default-size: 14px;
+  --default-font-weight: 300;
+  --default-font-family: "Montserrat", sans-serif;
+
+  /* look into this */
+  /* --background: 248 250 252;
+  --foreground: 15 23 42;
+  --secondary: 100, 116, 139;
+  --muted: 148, 163, 184;
+  --border: 226, 232, 240;
+  --destructive: 239, 68, 68;
+  --destructive-foreground: 248, 250, 252;
+  --muted-foreground: 100, 116, 139;
+  --accent: 241, 245, 249;
+  --accent-foreground: 15, 23, 42;
+  --popover: 255, 255, 255;
+  --popover-foreground: 15, 23, 42;
+  --card: 255, 255, 255;
+  --card-foreground: 15, 23, 42;
+  --input: 255, 255, 255;
+  --primary: 59, 130, 246;
+  --primary-foreground: 248, 250, 252;
+  --secondary-foreground: 248, 250, 252;
+  --muted-bg: 241, 245, 249;
+  --ring: 59, 130, 246;
+  --radius: 0.5rem; */
+
+  /* Toast Color Variables */
+  --toast-success: #10b981;
+  --toast-error: #ef4444;
+  --toast-warning: #f59e0b;
+  --toast-info: #3b82f6;
+}
+
+/* ----------------| Scrollbar |----------------------- */
+::-webkit-scrollbar {
+  width: var(--scrollbar-width);
+}
+
+::-webkit-scrollbar-track {
+  background-color: var(--scrollbar-track);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-hover);
+}
+
+/* ----------------| Custom Tailwind Classes : Dark & Light |----------------------- */
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+@custom-variant light (&:where([data-theme=light], [data-theme=light] *));
+
+/* ----------------| Create A New Custom Tailwind Classes |----------------------- */
+@theme {
+  /* Text Colors */
+  --color-text: var(--text);
+  --color-pri: var(--pri);
+  --color-pri-light: var(--pri-light);
+  --color-pri-lighter: var(--pri-lighter);
+  --color-placeholder: var(--placeholder);
+
+  /* Font Families */
+  --font-montserrat: "Montserrat", serif;
+  --font-raleway: "Raleway", serif;
+
+  /* Background Colors */
+  --background-color-bg: var(--bg);
+  --background-color-fg: var(--fg);
+  --background-color-toast-success: var(--toast-success);
+  --background-color-toast-error: var(--toast-error);
+  --background-color-toast-warning: var(--toast-warning);
+  --background-color-toast-info: var(--toast-info);
+
+  /* Breakpoints */
+  --breakpoint-mobile: 600px;
+  --breakpoint-mobile-sm: 320px;
+  --breakpoint-xxs: 360px;
+  --breakpoint-xs: 480px;
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1366px;
+  --breakpoint-3xl: 1536px;
+  --breakpoint-4xl: 1680px;
+  --breakpoint-5xl: 1920px;
+  --breakpoint-6xl: 2560px;
+}
+
+* {
+  @apply box-border;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-size: var(--default-size);
+  font-family: var(--default-font-family);
+  font-style: normal;
+  font-weight: var(--default-font-weight);
+  max-width: 100vw;
+  overflow-x: hidden;
+  font-feature-settings: "rlig" 1, "calt" 1;
+}
+
+button {
+  @apply cursor-pointer;
+}
+
+/* ----------------| Custom Tailwind Classes |----------------------- */
+@layer components {
+  /* ----------------| Flex Utilities |----------------------- */
+  .flex-center {
+    @apply flex items-center justify-center;
+  }
+
+  .flex-between {
+    @apply flex items-center justify-between;
+  }
+
+  .flex-start {
+    @apply flex items-start justify-start;
+  }
+
+  .flex-end {
+    @apply flex items-end justify-end;
+  }
+
+  .flex-col-center {
+    @apply flex flex-col items-center justify-center;
+  }
+
+  .flex-col-start {
+    @apply flex flex-col items-start justify-start;
+  }
+
+  .flex-col-end {
+    @apply flex flex-col items-end justify-end;
+  }
+
+  /* ----------------| Gradient Border |----------------------- */
+  .gradient-border {
+    position: relative;
+    display: inline-block;
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+    border: 1px solid transparent;
+  }
+
+  .gray-gradient {
+    background-image: linear-gradient(to right, #000, #000),
+      linear-gradient(-25deg, #afafaf, #afafaf28, #afafaf);
+  }
+
+  /* ----------------| Custom Range Slider |----------------------- */
+  .slider {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .slider::-webkit-slider-track {
+    background: #e5e7eb;
+    height: 8px;
+    border-radius: 4px;
+  }
+
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--pri);
+    height: 16px;
+    width: 16px;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  .slider::-moz-range-track {
+    background: var(--fg);
+    height: 8px;
+    border-radius: 4px;
+    border: none;
+  }
+
+  .slider::-moz-range-thumb {
+    background: var(--pri);
+    height: 16px;
+    width: 16px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+  }
+}
+
+#__next {
+  height: 100%;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* ----------------| SCROLLBAR |----------------------- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.5);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(148, 163, 184, 0.8);
+}
+
+/* ----------------| GENERAL STYLING |----------------------- */
+.bg-primary-gradient {
+  background: linear-gradient(145deg, rgb(var(--pri)), rgba(var(--pri), 0.8));
+}
+
+.bg-glass {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.bg-pattern {
+  background-image: radial-gradient(circle at 1px 1px, rgba(var(--pri), 0.1) 1px, transparent 0);
+  background-size: 20px 20px;
+}
+
+.bg-mesh-gradient {
+  background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(var(--pri), 0.3), transparent),
+    linear-gradient(-25deg, #afafaf, #afafaf28, #afafaf);
+}
+
+/* ----------------| Custom Range Slider |----------------------- */
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  border-radius: 4px;
+  background: #e5e7eb;
+  outline: none;
+  opacity: 0.7;
+  -webkit-transition: 0.2s;
+  transition: opacity 0.2s;
+}
+
+.slider:hover {
+  opacity: 1;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--pri);
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.slider::-moz-range-thumb {
+  background: var(--pri);
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
+
+.slider::-moz-range-track {
+  background: var(--fg);
+  height: 8px;
+  border-radius: 4px;
+}

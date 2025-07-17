@@ -36,10 +36,10 @@ const PrimaryButton: React.FC<PrimaryButtonProps> = ({
       onSubmit={onSubmit}
       type={type}
       disabled={disabled}
-      className={`flex-center gap-3 leading-normal bg-pri text-white rounded-[6px] transition-all duration-200 relative cursor-pointer
-          ${disabled ? "cursor-not-allowed" : "hover:brightness-110"}
-          ${className}
-          relative z-10 m-[1px]`}
+      className={`flex-center gap-3 leading-normal bg-green-600 text-white rounded-[6px] transition-all duration-200 relative cursor-pointer
+        ${disabled ? "cursor-not-allowed" : "hover:brightness-110"}
+        ${className}
+        relative z-10 m-[1px]`}
     >
       {iconLeft && <span>{iconLeft}</span>}
       {disabled && (

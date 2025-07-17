@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useReducer, ReactNode } from "react";
+import React, { createContext, useContext, useReducer, ReactNode, useRef } from "react";
 import { Toast, ToastAction, ToastContextType, ToastState } from "../../types/global";
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
@@ -26,9 +26,15 @@ const toastReducer = (state: ToastState, action: ToastAction): ToastState => {
 // Create the provider component
 export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(toastReducer, { toasts: [] });
+  
+  // --- THIS IS THE FIX ---
+  // Use a ref for a counter to guarantee unique IDs for each toast.
+  const toastIdCounter = useRef(0);
 
   const addToast = (toast: Omit<Toast, "id">) => {
-    const id = Date.now().toString();
+    // Generate a new, guaranteed unique ID for this session.
+    const id = `toast-${toastIdCounter.current++}`; 
+    
     dispatch({
       type: "ADD_TOAST",
       payload: { id, ...toast },

@@ -546,7 +546,7 @@ function Model({ url, onLoad }: { url: string; onLoad: (group: THREE.Group) => v
     const max = box.max.toArray();
 
     // Extract file info from URL
-    const fileName = url.split("/").pop() || "Unknown";
+    const fileName = url.split("/").pop()?.split("?")[0] || "Unknown"; // Clean the URL
     const fileExtension = fileName.split(".").pop()?.toLowerCase() || "";
     const format = fileExtension.toUpperCase();
 
@@ -642,10 +642,7 @@ function Model({ url, onLoad }: { url: string; onLoad: (group: THREE.Group) => v
       const object = objectMap.get(hierarchyNode.id);
       if (object) {
         // Apply visibility to both meshes and groups
-        // const oldVisible = object.visible;
         object.visible = hierarchyNode.visible;
-      } else {
-        // Object not found in map, skip
       }
 
       // Apply to children
@@ -763,7 +760,6 @@ function BlenderSelectionHandler({ modelGroup }: { modelGroup: THREE.Group | nul
 
   const handleClick = useCallback(
     (event: MouseEvent) => {
-      // Don't handle selection if no selection tool is active
       if (!Object.values(selectionMode).some(Boolean) || !modelGroup) return;
 
       event.stopPropagation();
@@ -788,9 +784,7 @@ function BlenderSelectionHandler({ modelGroup }: { modelGroup: THREE.Group | nul
         const intersectedObject = intersects[0].object as THREE.Mesh;
         const intersection = intersects[0];
 
-        // Handle different selection modes like Blender
         if (selectionMode.select) {
-          // Object selection - select entire mesh
           const objectId = intersectedObject.uuid;
           if (selectedMeshes.has(objectId)) {
             removeSelectedMesh(objectId);
@@ -801,7 +795,6 @@ function BlenderSelectionHandler({ modelGroup }: { modelGroup: THREE.Group | nul
             addSelectedMesh(objectId);
           }
         } else if (selectionMode.face) {
-          // Face selection - select specific face
           const faceId = `${intersectedObject.uuid}_face_${intersection.faceIndex}`;
           if (selectedMeshes.has(faceId)) {
             removeSelectedMesh(faceId);
@@ -812,19 +805,13 @@ function BlenderSelectionHandler({ modelGroup }: { modelGroup: THREE.Group | nul
             addSelectedMesh(faceId);
           }
         } else if (selectionMode.edge) {
-          // Edge selection - find closest edge
           if (intersection.faceIndex !== undefined && intersectedObject.geometry) {
-            // const geometry = intersectedObject.geometry;
             const face = intersection.faceIndex;
-
-            // Get the three edges of the triangle face
             const edgeIds = [
               `${intersectedObject.uuid}_edge_${face}_0`,
               `${intersectedObject.uuid}_edge_${face}_1`,
               `${intersectedObject.uuid}_edge_${face}_2`,
             ];
-
-            // For simplicity, select the first edge (in real Blender, it would be closest to click)
             const edgeId = edgeIds[0];
             if (selectedMeshes.has(edgeId)) {
               removeSelectedMesh(edgeId);
@@ -836,13 +823,10 @@ function BlenderSelectionHandler({ modelGroup }: { modelGroup: THREE.Group | nul
             }
           }
         } else if (selectionMode.vertex) {
-          // Vertex selection - find closest vertex
           if (intersection.faceIndex !== undefined && intersectedObject.geometry) {
             const geometry = intersectedObject.geometry;
             const positions = geometry.attributes.position;
             const face = intersection.faceIndex!;
-
-            // Get the three vertices of the triangle face
             const vertexIndices = geometry.index
               ? [
                   geometry.index.getX(face * 3),
@@ -850,11 +834,8 @@ function BlenderSelectionHandler({ modelGroup }: { modelGroup: THREE.Group | nul
                   geometry.index.getX(face * 3 + 2),
                 ]
               : [face * 3, face * 3 + 1, face * 3 + 2];
-
-            // Find closest vertex to intersection point
             let closestVertexIndex = vertexIndices[0];
             let minDistance = Infinity;
-
             vertexIndices.forEach((vertexIndex) => {
               const vertex = new THREE.Vector3(
                 positions.getX(vertexIndex),
@@ -868,7 +849,6 @@ function BlenderSelectionHandler({ modelGroup }: { modelGroup: THREE.Group | nul
                 closestVertexIndex = vertexIndex;
               }
             });
-
             const vertexId = `${intersectedObject.uuid}_vertex_${closestVertexIndex}`;
             if (selectedMeshes.has(vertexId)) {
               removeSelectedMesh(vertexId);
@@ -881,7 +861,6 @@ function BlenderSelectionHandler({ modelGroup }: { modelGroup: THREE.Group | nul
           }
         }
       } else {
-        // Clicked on empty space - clear selection if not holding Ctrl/Cmd
         if (!event.ctrlKey && !event.metaKey) {
           clearSelectedMeshes();
         }
@@ -931,14 +910,12 @@ function EnhancedSelectionHighlighter({ modelGroup }: { modelGroup: THREE.Group 
             if ("emissive" in mat) {
               mat.emissive.setHex(0x000000);
             }
-            // Reset wireframe color for non-selected items
             if ("color" in mat && displayOptions.wireframe) {
               mat.color.setHex(0xffffff);
             }
           });
         } else if ("emissive" in child.material) {
           child.material.emissive.setHex(0x000000);
-          // Reset wireframe color for non-selected items
           if ("color" in child.material && displayOptions.wireframe) {
             child.material.color.setHex(0xffffff);
           }
@@ -946,109 +923,39 @@ function EnhancedSelectionHighlighter({ modelGroup }: { modelGroup: THREE.Group 
       }
     });
 
-    // Apply selection highlighting based on selection mode
+    // Apply selection highlighting
     selectedMeshes.forEach((selectionId) => {
-      if (selectionId.includes("_face_")) {
-        // Face selection highlighting
-        const [meshId] = selectionId.split("_face_");
+        const highlightColor = selectionId.includes("_face_") ? 0xff6600 : 
+                               selectionId.includes("_edge_") ? 0xffff00 :
+                               selectionId.includes("_vertex_") ? 0x00ff00 : 0x0066ff;
+        
+        const [meshId] = selectionId.split(/_face_|_edge_|_vertex_/);
+
         modelGroup.traverse((child) => {
-          if (child instanceof THREE.Mesh && child.uuid === meshId) {
-            if (Array.isArray(child.material)) {
-              child.material.forEach((mat) => {
-                if (displayOptions.wireframe && "color" in mat) {
-                  mat.color.setHex(0xff6600); // Orange wireframe for faces
-                } else if ("emissive" in mat) {
-                  mat.emissive.setHex(0xff6600); // Orange glow for solid
+            if (child instanceof THREE.Mesh && child.uuid === meshId) {
+                if (Array.isArray(child.material)) {
+                    child.material.forEach((mat) => {
+                        if (displayOptions.wireframe && "color" in mat) mat.color.setHex(highlightColor);
+                        else if ("emissive" in mat) mat.emissive.setHex(highlightColor);
+                    });
+                } else if ("emissive" in child.material) {
+                    if (displayOptions.wireframe && "color" in child.material) child.material.color.setHex(highlightColor);
+                    else child.material.emissive.setHex(highlightColor);
                 }
-              });
-            } else if ("emissive" in child.material) {
-              if (displayOptions.wireframe && "color" in child.material) {
-                child.material.color.setHex(0xff6600);
-              } else {
-                child.material.emissive.setHex(0xff6600);
-              }
             }
-          }
         });
-      } else if (selectionId.includes("_edge_")) {
-        // Edge selection highlighting
-        const [meshId] = selectionId.split("_edge_");
-        modelGroup.traverse((child) => {
-          if (child instanceof THREE.Mesh && child.uuid === meshId) {
-            if (Array.isArray(child.material)) {
-              child.material.forEach((mat) => {
-                if (displayOptions.wireframe && "color" in mat) {
-                  mat.color.setHex(0xffff00); // Yellow wireframe for edges
-                } else if ("emissive" in mat) {
-                  mat.emissive.setHex(0xffff00); // Yellow glow for solid
-                }
-              });
-            } else if ("emissive" in child.material) {
-              if (displayOptions.wireframe && "color" in child.material) {
-                child.material.color.setHex(0xffff00);
-              } else {
-                child.material.emissive.setHex(0xffff00);
-              }
-            }
-          }
-        });
-      } else if (selectionId.includes("_vertex_")) {
-        // Vertex selection highlighting
-        const [meshId] = selectionId.split("_vertex_");
-        modelGroup.traverse((child) => {
-          if (child instanceof THREE.Mesh && child.uuid === meshId) {
-            if (Array.isArray(child.material)) {
-              child.material.forEach((mat) => {
-                if (displayOptions.wireframe && "color" in mat) {
-                  mat.color.setHex(0x00ff00); // Green wireframe for vertices
-                } else if ("emissive" in mat) {
-                  mat.emissive.setHex(0x00ff00); // Green glow for solid
-                }
-              });
-            } else if ("emissive" in child.material) {
-              if (displayOptions.wireframe && "color" in child.material) {
-                child.material.color.setHex(0x00ff00);
-              } else {
-                child.material.emissive.setHex(0x00ff00);
-              }
-            }
-          }
-        });
-      } else {
-        // Object selection highlighting
-        modelGroup.traverse((child) => {
-          if (child instanceof THREE.Mesh && child.uuid === selectionId) {
-            if (Array.isArray(child.material)) {
-              child.material.forEach((mat) => {
-                if (displayOptions.wireframe && "color" in mat) {
-                  mat.color.setHex(0x0066ff); // Blue wireframe for objects
-                } else if ("emissive" in mat) {
-                  mat.emissive.setHex(0x0066ff); // Blue glow for solid
-                }
-              });
-            } else if ("emissive" in child.material) {
-              if (displayOptions.wireframe && "color" in child.material) {
-                child.material.color.setHex(0x0066ff);
-              } else {
-                child.material.emissive.setHex(0x0066ff);
-              }
-            }
-          }
-        });
-      }
     });
   }, [modelGroup, selectedMeshes, selectionMode, displayOptions.wireframe]);
 
   return null;
 }
 
-// Camera Reset Component - Fixed to work reliably
+// Camera Reset Component
 function CameraResetter() {
   const { cameraPosition } = useViewerStore();
   const { camera } = useThree();
 
   useEffect(() => {
-    // Update camera position when store changes
     camera.position.set(cameraPosition[0], cameraPosition[1], cameraPosition[2]);
     camera.lookAt(0, 0, 0);
     camera.updateProjectionMatrix();
@@ -1057,17 +964,16 @@ function CameraResetter() {
   return null;
 }
 
-// Smart OrbitControls Component - Fixed to work like Blender
+// Smart OrbitControls Component
 function SmartOrbitControls() {
   const { activeTools } = useViewerStore();
-
   return (
     <OrbitControls
       enableDamping
       dampingFactor={0.05}
       minDistance={1}
       maxDistance={20}
-      enabled={true} // Always enabled for basic functionality
+      enabled={true}
       enablePan={activeTools.pan}
       enableZoom={activeTools.zoom}
       enableRotate={activeTools.orbit}
@@ -1081,26 +987,13 @@ function ErrorDisplay({ message }: { message: string }) {
     <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
       <div className="text-center p-8 max-w-md">
         <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
-          <svg
-            className="w-8 h-8 text-red-600"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
+          <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
         <h3 className="text-lg font-semibold text-gray-900 mb-2">Cannot Load 3D Model</h3>
         <p className="text-gray-600 mb-4">{message}</p>
-        <button
-          onClick={() => window.location.reload()}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        >
+        <button onClick={() => window.location.reload()} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
           Refresh Page
         </button>
       </div>
@@ -1109,21 +1002,10 @@ function ErrorDisplay({ message }: { message: string }) {
 }
 
 // Info Panel
-function InfoPanel({
-  fileExtension,
-  isLoading,
-  showMeasurements,
-}: {
-  fileExtension?: string;
-  isLoading: boolean;
-  showMeasurements?: boolean;
-}) {
-  const { isFullscreen, activeTools, measurementPoints, selectionMode, selectedMeshes } =
-    useViewerStore();
-
+function InfoPanel({ fileExtension, isLoading, showMeasurements }: { fileExtension?: string; isLoading: boolean; showMeasurements?: boolean; }) {
+  const { isFullscreen, activeTools, measurementPoints, selectionMode, selectedMeshes } = useViewerStore();
   const isSelectionActive = Object.values(selectionMode).some(Boolean);
   const activeSelectionMode = Object.entries(selectionMode).find(([, active]) => active)?.[0];
-
   const getSelectionTypeDisplay = () => {
     if (activeSelectionMode === "select") return "Objects";
     if (activeSelectionMode === "face") return "Faces";
@@ -1131,52 +1013,12 @@ function InfoPanel({
     if (activeSelectionMode === "vertex") return "Vertices";
     return "";
   };
-
   return (
-    <div
-      className={`absolute top-4 left-4 z-10 rounded-lg p-3 shadow-lg max-w-xs ${
-        isFullscreen ? "bg-black bg-opacity-60 text-white" : "bg-white bg-opacity-90"
-      }`}
-    >
-      <h3 className={`text-sm font-semibold mb-1 ${isFullscreen ? "text-white" : "text-gray-800"}`}>
-        3D Model Viewer
-      </h3>
-
-      {isLoading ? (
-        <p className={`text-xs ${isFullscreen ? "text-blue-300" : "text-blue-600"}`}>
-          Loading {fileExtension?.toUpperCase()} model...
-        </p>
-      ) : (
-        <p className={`text-xs ${isFullscreen ? "text-gray-200" : "text-gray-600"}`}>
-          Viewing {fileExtension?.toUpperCase()} format
-        </p>
-      )}
-
-      {activeTools.measure && showMeasurements && (
-        <div className="mt-2 pt-2 border-t border-gray-400">
-          <p className={`text-xs font-medium ${isFullscreen ? "text-blue-300" : "text-blue-600"}`}>
-            🎯 {activeTools.measurementType.toUpperCase()} MODE
-          </p>
-          <p className={`text-xs ${isFullscreen ? "text-gray-300" : "text-gray-600"}`}>
-            Points: {measurementPoints.length}
-          </p>
-        </div>
-      )}
-
-      {isSelectionActive && (
-        <div className="mt-2 pt-2 border-t border-gray-400">
-          <p
-            className={`text-xs font-medium ${
-              isFullscreen ? "text-purple-300" : "text-purple-600"
-            }`}
-          >
-            🔍 {activeSelectionMode?.toUpperCase()} SELECTION
-          </p>
-          <p className={`text-xs ${isFullscreen ? "text-gray-300" : "text-gray-600"}`}>
-            Selected: {selectedMeshes.size} {getSelectionTypeDisplay()}
-          </p>
-        </div>
-      )}
+    <div className={`absolute top-4 left-4 z-10 rounded-lg p-3 shadow-lg max-w-xs ${isFullscreen ? "bg-black bg-opacity-60 text-white" : "bg-white bg-opacity-90"}`}>
+      <h3 className={`text-sm font-semibold mb-1 ${isFullscreen ? "text-white" : "text-gray-800"}`}>3D Model Viewer</h3>
+      {isLoading ? (<p className={`text-xs ${isFullscreen ? "text-blue-300" : "text-blue-600"}`}>Loading {fileExtension?.toUpperCase()} model...</p>) : (<p className={`text-xs ${isFullscreen ? "text-gray-200" : "text-gray-600"}`}>Viewing {fileExtension?.toUpperCase()} format</p>)}
+      {activeTools.measure && showMeasurements && (<div className="mt-2 pt-2 border-t border-gray-400"><p className={`text-xs font-medium ${isFullscreen ? "text-blue-300" : "text-blue-600"}`}>🎯 {activeTools.measurementType.toUpperCase()} MODE</p><p className={`text-xs ${isFullscreen ? "text-gray-300" : "text-gray-600"}`}>Points: {measurementPoints.length}</p></div>)}
+      {isSelectionActive && (<div className="mt-2 pt-2 border-t border-gray-400"><p className={`text-xs font-medium ${isFullscreen ? "text-purple-300" : "text-purple-600"}`}>🔍 {activeSelectionMode?.toUpperCase()} SELECTION</p><p className={`text-xs ${isFullscreen ? "text-gray-300" : "text-gray-600"}`}>Selected: {selectedMeshes.size} {getSelectionTypeDisplay()}</p></div>)}
     </div>
   );
 }
@@ -1184,42 +1026,13 @@ function InfoPanel({
 // Controls Info
 function ControlsInfo({ showMeasurements }: { showMeasurements?: boolean }) {
   const { isFullscreen, activeTools, selectionMode } = useViewerStore();
-
   const isSelectionActive = Object.values(selectionMode).some(Boolean);
   const activeSelectionMode = Object.entries(selectionMode).find(([, active]) => active)?.[0];
-
   return (
-    <div
-      className={`absolute bottom-4 right-4 z-10 rounded-lg p-3 shadow-lg ${
-        isFullscreen ? "bg-black bg-opacity-60 text-white" : "bg-white bg-opacity-90"
-      }`}
-    >
-      <h4 className={`text-xs font-semibold mb-1 ${isFullscreen ? "text-white" : "text-gray-800"}`}>
-        Controls
-      </h4>
+    <div className={`absolute bottom-4 right-4 z-10 rounded-lg p-3 shadow-lg ${isFullscreen ? "bg-black bg-opacity-60 text-white" : "bg-white bg-opacity-90"}`}>
+      <h4 className={`text-xs font-semibold mb-1 ${isFullscreen ? "text-white" : "text-gray-800"}`}>Controls</h4>
       <div className={`text-xs space-y-1 ${isFullscreen ? "text-gray-200" : "text-gray-600"}`}>
-        {activeTools.measure && showMeasurements ? (
-          <>
-            <div>• Click model: Add point</div>
-            <div>• Use panel to complete</div>
-          </>
-        ) : isSelectionActive ? (
-          <>
-            <div>• Click: Select {activeSelectionMode}</div>
-            <div>• Ctrl+Click: Multi-select</div>
-            <div>• Click empty: Clear selection</div>
-            {activeSelectionMode === "face" && <div>• Orange glow: Selected faces</div>}
-            {activeSelectionMode === "edge" && <div>• Yellow glow: Selected edges</div>}
-            {activeSelectionMode === "vertex" && <div>• Green glow: Selected vertices</div>}
-            {activeSelectionMode === "select" && <div>• Blue glow: Selected objects</div>}
-          </>
-        ) : (
-          <>
-            <div>• Left drag: {activeTools.orbit ? "Rotate" : "Disabled"}</div>
-            <div>• Right drag: {activeTools.pan ? "Pan" : "Disabled"}</div>
-            <div>• Scroll: {activeTools.zoom ? "Zoom" : "Disabled"}</div>
-          </>
-        )}
+        {activeTools.measure && showMeasurements ? (<><div>• Click model: Add point</div><div>• Use panel to complete</div></>) : isSelectionActive ? (<><div>• Click: Select {activeSelectionMode}</div><div>• Ctrl+Click: Multi-select</div><div>• Click empty: Clear selection</div>{activeSelectionMode === "face" && <div>• Orange glow: Selected faces</div>}{activeSelectionMode === "edge" && <div>• Yellow glow: Selected edges</div>}{activeSelectionMode === "vertex" && <div>• Green glow: Selected vertices</div>}{activeSelectionMode === "select" && <div>• Blue glow: Selected objects</div>}</>) : (<><div>• Left drag: {activeTools.orbit ? "Rotate" : "Disabled"}</div><div>• Right drag: {activeTools.pan ? "Pan" : "Disabled"}</div><div>• Scroll: {activeTools.zoom ? "Zoom" : "Disabled"}</div></>)}
       </div>
     </div>
   );
@@ -1245,19 +1058,15 @@ function EnhancedModelViewer({ modelPath, showMeasurements = true }: EnhancedMod
     measurementPoints,
   } = useViewerStore();
 
-  // Reset state when model changes
   useEffect(() => {
     console.log("🔄 Loading new model, clearing previous measurements");
     setHasError(false);
     setIsLoading(true);
     setModelGroup(null);
-
-    // Clear measurements when switching models since they're model-specific
-    const { clearMeasurements, clearMeasurementPoints, setUnitConversionFactor } =
-      useViewerStore.getState();
+    const { clearMeasurements, clearMeasurementPoints, setUnitConversionFactor } = useViewerStore.getState();
     clearMeasurements();
     clearMeasurementPoints();
-    setUnitConversionFactor(2.0); // Reset to the calculated optimal factor
+    setUnitConversionFactor(2.0);
   }, [modelPath]);
 
   const handleModelLoad = useCallback((group: THREE.Group) => {
@@ -1271,7 +1080,6 @@ function EnhancedModelViewer({ modelPath, showMeasurements = true }: EnhancedMod
     setIsLoading(false);
   }, []);
 
-  // ESC key handler
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && isFullscreen) {
@@ -1284,7 +1092,10 @@ function EnhancedModelViewer({ modelPath, showMeasurements = true }: EnhancedMod
     }
   }, [isFullscreen, exitFullscreen]);
 
-  const fileExtension = modelPath.toLowerCase().split(".").pop();
+  // --- THIS IS THE FIX ---
+  // Clean the URL to get the extension, but use the full URL for loading.
+  const cleanUrl = modelPath.split('?')[0];
+  const fileExtension = cleanUrl.toLowerCase().split(".").pop();
   const isSupported = fileExtension === "glb" || fileExtension === "gltf";
 
   if (!isClient) {
@@ -1316,11 +1127,7 @@ function EnhancedModelViewer({ modelPath, showMeasurements = true }: EnhancedMod
         className="w-full h-full"
         camera={{ position: cameraPosition, fov: 75 }}
         shadows={displayOptions.shadows}
-        gl={{
-          antialias: true,
-          alpha: false,
-          powerPreference: "high-performance",
-        }}
+        gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
         dpr={[1, 2]}
         onError={handleCanvasError}
         onCreated={({ gl }) => {
@@ -1331,123 +1138,43 @@ function EnhancedModelViewer({ modelPath, showMeasurements = true }: EnhancedMod
         }}
       >
         <color attach="background" args={[displayOptions.backgroundColor]} />
-
-        {/* Grid and Axes */}
-        <CustomGrid
-          visible={displayOptions.showGrid}
-          size={displayOptions.gridSize}
-          divisions={displayOptions.gridDivisions}
-          opacity={displayOptions.gridOpacity}
-        />
-        <CustomAxes
-          visible={displayOptions.showAxes}
-          length={displayOptions.axisLength}
-          opacity={displayOptions.axisOpacity}
-        />
-
-        {/* Lighting */}
-        {displayOptions.ambientLight && (
-          <ambientLight intensity={displayOptions.ambientLightIntensity} />
-        )}
-        {displayOptions.directionalLight && (
-          <directionalLight
-            position={displayOptions.directionalLightPosition}
-            intensity={displayOptions.directionalLightIntensity}
-            castShadow={displayOptions.shadows}
-            shadow-mapSize={[2048, 2048]}
-          />
-        )}
-        {displayOptions.pointLight && (
-          <pointLight
-            position={displayOptions.pointLightPosition}
-            intensity={displayOptions.pointLightIntensity}
-            castShadow={displayOptions.shadows}
-          />
-        )}
-
-        {/* Ground for shadows */}
-        {displayOptions.shadows && (
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1, 0]} receiveShadow>
-            <planeGeometry args={[100, 100]} />
-            <shadowMaterial transparent opacity={0.2} />
-          </mesh>
-        )}
-
-        {/* Model */}
+        <CustomGrid visible={displayOptions.showGrid} size={displayOptions.gridSize} divisions={displayOptions.gridDivisions} opacity={displayOptions.gridOpacity} />
+        <CustomAxes visible={displayOptions.showAxes} length={displayOptions.axisLength} opacity={displayOptions.axisOpacity} />
+        {displayOptions.ambientLight && (<ambientLight intensity={displayOptions.ambientLightIntensity} />)}
+        {displayOptions.directionalLight && (<directionalLight position={displayOptions.directionalLightPosition} intensity={displayOptions.directionalLightIntensity} castShadow={displayOptions.shadows} shadow-mapSize={[2048, 2048]} />)}
+        {displayOptions.pointLight && (<pointLight position={displayOptions.pointLightPosition} intensity={displayOptions.pointLightIntensity} castShadow={displayOptions.shadows} />)}
+        {displayOptions.shadows && (<mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1, 0]} receiveShadow><planeGeometry args={[100, 100]} /><shadowMaterial transparent opacity={0.2} /></mesh>)}
+        
         <Suspense fallback={<ProgressLoader />}>
           <Model url={modelPath} onLoad={handleModelLoad} />
         </Suspense>
 
-        {/* Measurements - Only show when on Measurements tab */}
         {showMeasurements && (
           <>
-            {measurementPoints.length > 0 && (
-              <MeasurementPoints
-                points={measurementPoints}
-                measurementType={useViewerStore.getState().activeTools.measurementType}
-              />
-            )}
-
+            {measurementPoints.length > 0 && (<MeasurementPoints points={measurementPoints} measurementType={useViewerStore.getState().activeTools.measurementType} />)}
             {measurements.map((measurement) => {
               switch (measurement.type) {
-                case "distance":
-                  return (
-                    <MeasurementLine
-                      key={measurement.id}
-                      start={measurement.points[0]}
-                      end={measurement.points[1]}
-                      distance={measurement.value}
-                    />
-                  );
-                case "angle":
-                  return (
-                    <AngleMeasurement
-                      key={measurement.id}
-                      points={measurement.points}
-                      angle={measurement.value}
-                    />
-                  );
-                case "area":
-                  return (
-                    <AreaMeasurement
-                      key={measurement.id}
-                      points={measurement.points}
-                      area={measurement.value}
-                    />
-                  );
-                default:
-                  return null;
+                case "distance": return (<MeasurementLine key={measurement.id} start={measurement.points[0]} end={measurement.points[1]} distance={measurement.value} />);
+                case "angle": return (<AngleMeasurement key={measurement.id} points={measurement.points} angle={measurement.value} />);
+                case "area": return (<AreaMeasurement key={measurement.id} points={measurement.points} area={measurement.value} />);
+                default: return null;
               }
             })}
           </>
         )}
-
-        {/* Measurement interaction - Only allow when on Measurements tab */}
+        
         {showMeasurements && <MeasurementHandler modelGroup={modelGroup} />}
-
-        {/* Selection interaction - Always available */}
         <BlenderSelectionHandler modelGroup={modelGroup} />
-
-        {/* Selected Objects Highlighter */}
         <EnhancedSelectionHighlighter modelGroup={modelGroup} />
-
-        {/* Camera Reset Handler */}
         <CameraResetter />
-
         <SmartOrbitControls />
       </Canvas>
-
-      <InfoPanel
-        fileExtension={fileExtension}
-        isLoading={isLoading}
-        showMeasurements={showMeasurements}
-      />
+      <InfoPanel fileExtension={fileExtension} isLoading={isLoading} showMeasurements={showMeasurements} />
       <ControlsInfo showMeasurements={showMeasurements} />
     </div>
   );
 }
 
-// Export with client-side rendering
 export default dynamic(() => Promise.resolve(EnhancedModelViewer), {
   ssr: false,
   loading: () => (

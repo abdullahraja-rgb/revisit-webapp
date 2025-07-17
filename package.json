@@ -9,6 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@azure/msal-browser": "^4.15.0",
+    "@azure/msal-react": "^3.0.15",
     "@gsap/react": "^2.1.2",
     "@react-three/drei": "^10.3.0",
     "@react-three/fiber": "^9.1.2",

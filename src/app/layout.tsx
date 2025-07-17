@@ -1,36 +1,24 @@
+"use client"; // This line is crucial to make this a Client Component
+
 import type { Metadata, Viewport } from "next";
 import "../styles/globals.css";
 import { ToastProvider } from "@/contexts/ToastContext";
 import ToastContainer from "@/components/ui/toast/ToastContainer";
 import { BASE_METADATA, ICONS, VIEWPORT } from "@/constants/website";
 
-// ----------------| METADATA |--------------------------
-export const metadata: Metadata = {
-  manifest: ICONS.MANIFEST,
-  title: {
-    default: BASE_METADATA.TITLE,
-    template: `%s | ${BASE_METADATA.TITLE}`,
-  },
-  description: BASE_METADATA.DESCRIPTION,
-  icons: {
-    icon: ICONS.FAVICON,
-    shortcut: ICONS.FAVICON_32X32,
-    apple: ICONS.APPLE_TOUCH_ICON,
-    other: {
-      rel: "icon",
-      url: ICONS.FAVICON,
-    },
-  },
-};
+// --- NEW: MSAL Imports ---
+import { MsalProvider } from "@azure/msal-react";
+import { PublicClientApplication } from "@azure/msal-browser";
+import { msalConfig } from "../authConfig"; // Make sure this path is correct
 
-// ----------------| VIEWPORT |--------------------------
-export const viewport: Viewport = {
-  themeColor: VIEWPORT.THEME_COLOR,
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-};
+// Create an MSAL instance outside of the component to avoid re-creating it on every render
+const msalInstance = new PublicClientApplication(msalConfig);
+
+// Note: The 'export const metadata' and 'export const viewport' are typically
+// used in Server Components. In a Client Component layout, you might manage
+// the title and meta tags differently, e.g., using a custom hook or component.
+// For now, we will leave them, but be aware they may not function as expected
+// in a top-level client layout.
 
 export default function RootLayout({
   children,
@@ -54,10 +42,13 @@ export default function RootLayout({
         <link rel="manifest" href={ICONS.MANIFEST} />
       </head>
       <body className={`antialiased`}>
-        <ToastProvider>
-          {children}
-          <ToastContainer />
-        </ToastProvider>
+        {/* Wrap the entire application with the MSAL Provider */}
+        <MsalProvider instance={msalInstance}>
+          <ToastProvider>
+            {children}
+            <ToastContainer />
+          </ToastProvider>
+        </MsalProvider>
       </body>
     </html>
   );

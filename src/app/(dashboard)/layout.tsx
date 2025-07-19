@@ -2,7 +2,6 @@
 
 import React, { useState, createContext, useContext, ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
-// The HeartPulse icon is no longer needed here
 import { LayoutDashboard, Activity, Home, Menu } from 'lucide-react';
 import Modal from '@/components/ui/Modal'; 
 import AuthComponent from '@/components/view/(dashboard)/AuthComponent';
@@ -26,14 +25,14 @@ export const useDashboardModal = () => {
   return context;
 };
 
-// The SidebarLink component remains the same
+// The SidebarLink component now uses the new color scheme
 const SidebarLink = ({ href, icon, text, active = false }: { href: string, icon: React.ReactNode, text: string, active?: boolean }) => (
     <a
         href={href}
         className={`flex items-center px-4 py-3 rounded-lg transition-colors text-sm font-medium
             ${active
-                ? 'bg-blue-100 text-blue-700'
-                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                ? 'bg-primary-light text-primary'
+                : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
             }`}
     >
         {icon}
@@ -55,21 +54,17 @@ function AuthenticatedView({ children }: { children: React.ReactNode }) {
     const currentPageTitle = navLinks.find(link => link.href === pathname)?.text || "Dashboard";
 
     return (
-        <div className="flex h-screen bg-gray-100">
+        <div className="flex h-screen bg-neutral-100">
             <aside 
-                className={`w-64 bg-white border-r border-gray-200 flex-shrink-0 transition-transform duration-300 ease-in-out fixed lg:relative h-full z-20 
+                className={`w-64 bg-white border-r border-neutral-200 flex-shrink-0 transition-transform duration-300 ease-in-out fixed lg:relative h-full z-20 
                     ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}
             >
                 {/* --- UPDATED: New Logo and Branding --- */}
-                <div className="flex items-center justify-between h-16 px-4 border-b">
+                <div className="flex items-center justify-between h-16 px-4 border-b border-neutral-200">
                     <a href="/" className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white">
-                            {/* Replaced the HeartPulse icon with a custom SVG pulse icon */}
-                            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M3 12H6L8 5L12 19L16 9L18 12H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                        </div>
-                        <span className="text-xl font-bold text-gray-800">Humant</span>
+                        {/* Use an <img> tag to display your logo.png */}
+                        <img src="/assets/images/logo/logo-icon.png" alt="Humant Logo" className="w-8 h-8" />
+                        <span className="text-xl font-bold text-neutral-800">Humant</span>
                     </a>
                 </div>
                 <nav className="p-4 space-y-2">
@@ -80,12 +75,12 @@ function AuthenticatedView({ children }: { children: React.ReactNode }) {
             </aside>
 
             <div className="flex-1 flex flex-col overflow-hidden">
-                <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 flex-shrink-0">
+                <header className="h-16 bg-white border-b border-neutral-200 flex items-center justify-between px-6 flex-shrink-0">
                     <div className="flex items-center">
-                        <button onClick={() => setSidebarOpen(true)} className="lg:hidden mr-4 p-2 rounded-md text-gray-500 hover:bg-gray-100">
+                        <button onClick={() => setSidebarOpen(true)} className="lg:hidden mr-4 p-2 rounded-md text-neutral-500 hover:bg-neutral-100">
                             <Menu className="w-6 h-6" />
                         </button>
-                        <h1 className="text-xl font-semibold text-gray-800">{currentPageTitle}</h1>
+                        <h1 className="text-xl font-semibold text-neutral-800">{currentPageTitle}</h1>
                     </div>
                     <div className="flex items-center space-x-4">
                         <AuthComponent />

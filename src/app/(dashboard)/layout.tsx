@@ -2,11 +2,12 @@
 
 import React, { useState, createContext, useContext, ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Activity, Home, Menu } from 'lucide-react';
+import { LayoutDashboard, Activity, Home, Menu, Users, Shield } from 'lucide-react';
 import Modal from '@/components/ui/Modal'; 
 import AuthComponent from '@/components/view/(dashboard)/AuthComponent';
 import LoginPage from '@/components/view/(dashboard)/LoginPage'; 
 import { AuthenticatedTemplate, UnauthenticatedTemplate } from "@azure/msal-react";
+import { useAuthRoles } from '@/hooks/useAuthRoles'; // Import your new hook
 
 // --- Create a context to provide modal functions to child pages ---
 type ModalContextType = {
@@ -25,7 +26,7 @@ export const useDashboardModal = () => {
   return context;
 };
 
-// The SidebarLink component now uses the new color scheme
+// The SidebarLink component
 const SidebarLink = ({ href, icon, text, active = false }: { href: string, icon: React.ReactNode, text: string, active?: boolean }) => (
     <a
         href={href}
@@ -44,14 +45,20 @@ const SidebarLink = ({ href, icon, text, active = false }: { href: string, icon:
 function AuthenticatedView({ children }: { children: React.ReactNode }) {
     const [isSidebarOpen, setSidebarOpen] = useState(false);
     const pathname = usePathname();
+    const { isAdmin } = useAuthRoles(); // Use the hook to check the user's role
 
     const navLinks = [
-        { href: "/", text: "Patient Browser", icon: <LayoutDashboard className="w-5 h-5 mr-3" /> },
+        { href: "/", text: "Dashboard", icon: <LayoutDashboard className="w-5 h-5 mr-3" /> },
+        { href: "/patient-browser", text: "Patient Browser", icon: <Users className="w-5 h-5 mr-3" /> },
         { href: "/remote-monitoring", text: "Remote Monitoring", icon: <Activity className="w-5 h-5 mr-3" /> },
-        { href: "/home-assessment", text: "Home Assessment", icon: <Home className="w-5 h-5 mr-3" /> },
     ];
     
-    const currentPageTitle = navLinks.find(link => link.href === pathname)?.text || "Dashboard";
+    const activeLink = navLinks
+        .slice()
+        .sort((a, b) => b.href.length - a.href.length)
+        .find(link => pathname.startsWith(link.href));
+
+    const currentPageTitle = activeLink ? activeLink.text : "Dashboard";
 
     return (
         <div className="flex h-screen bg-neutral-100">
@@ -59,18 +66,35 @@ function AuthenticatedView({ children }: { children: React.ReactNode }) {
                 className={`w-64 bg-white border-r border-neutral-200 flex-shrink-0 transition-transform duration-300 ease-in-out fixed lg:relative h-full z-20 
                     ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}
             >
-                {/* --- UPDATED: New Logo and Branding --- */}
                 <div className="flex items-center justify-between h-16 px-4 border-b border-neutral-200">
                     <a href="/" className="flex items-center space-x-3">
-                        {/* Use an <img> tag to display your logo.png */}
                         <img src="/assets/images/logo/logo-icon.png" alt="Humant Logo" className="w-8 h-8" />
                         <span className="text-xl font-bold text-neutral-800">Humant</span>
                     </a>
                 </div>
                 <nav className="p-4 space-y-2">
                     {navLinks.map(link => (
-                        <SidebarLink key={link.href} href={link.href} icon={link.icon} text={link.text} active={pathname === link.href} />
+                        <SidebarLink 
+                            key={link.href}
+                            href={link.href} 
+                            icon={link.icon} 
+                            text={link.text} 
+                            active={pathname === link.href || (link.href !== "/" && pathname.startsWith(link.href))} 
+                        />
                     ))}
+
+                    {/* --- Conditionally render the Admin link --- */}
+                    {isAdmin && (
+                        <>
+                            <div className="pt-2 mt-2 border-t border-neutral-200"></div>
+                            <SidebarLink 
+                                href="/admin" 
+                                icon={<Shield className="w-5 h-5 mr-3" />} 
+                                text="Admin" 
+                                active={pathname.startsWith('/admin')} 
+                            />
+                        </>
+                    )}
                 </nav>
             </aside>
 

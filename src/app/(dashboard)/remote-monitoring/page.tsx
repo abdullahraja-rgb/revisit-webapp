@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { getAssessments } from '@/app/actions/monitoringActions';
 import { FhirServiceRequest, FhirTask } from '@/types/global';
 import { useDashboardModal } from '@/app/(dashboard)/layout';
+import { useMsal } from "@azure/msal-react"; // Import the main MSAL hook
+import { loginRequest } from "@/authConfig"; // Import your login request config
 import { Loader, CheckCircle, AlertCircle, Clock, Inbox } from 'lucide-react';
 
 // Define a new type for our processed assessment data
@@ -69,8 +71,6 @@ const TaskDetailModal = ({ assessment, onClose }: { assessment: ProcessedAssessm
             <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
                 {assessment.tasks.length > 0 ? (
                     assessment.tasks.map(task => (
-                        // --- KEY PROP LOCATION #1 ---
-                        // This key is crucial for the list of tasks inside the modal.
                         <div key={task.id} className="bg-gray-50 p-4 rounded-md border flex justify-between items-center">
                             <p className="font-medium text-gray-700">{task.description}</p>
                             <span className={`text-xs font-medium px-2 py-1 rounded-full ${task.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600'}`}>
@@ -94,41 +94,64 @@ const TaskDetailModal = ({ assessment, onClose }: { assessment: ProcessedAssessm
 export default function RemoteMonitoringPage() {
   const [assessments, setAssessments] = useState<ProcessedAssessment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
   const { openModal, closeModal } = useDashboardModal();
+  const { instance, accounts } = useMsal(); // Get the MSAL instance from the context
 
   useEffect(() => {
     const loadAssessments = async () => {
+      // Ensure there is a logged-in user before trying to fetch data
+      if (accounts.length === 0) {
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true);
-      const bundle = await getAssessments();
-      
-      if (bundle && bundle.entry) {
-        const serviceRequests = bundle.entry
-          .filter((e: any) => e.resource.resourceType === 'ServiceRequest')
-          .map((e: any) => e.resource);
 
-        const tasks = bundle.entry
-          .filter((e: any) => e.resource.resourceType === 'Task')
-          .map((e: any) => e.resource);
-
-        const processed = serviceRequests.map((sr: FhirServiceRequest) => {
-          const relatedTasks = tasks.filter((task: FhirTask) => 
-            task.basedOn?.some(ref => ref.reference === `ServiceRequest/${sr.id}`)
-          );
-          const completedTasks = relatedTasks.filter(t => t.status === 'completed').length;
-          const totalTasks = relatedTasks.length;
-          const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
-
-          return { serviceRequest: sr, tasks: relatedTasks, totalTasks, completedTasks, progress };
+      try {
+        // Silently acquire an access token
+        const response = await instance.acquireTokenSilent({
+            ...loginRequest,
+            account: accounts[0]
         });
 
-        setAssessments(processed);
+        // Pass the real token to the server action
+        const bundle = await getAssessments(response.accessToken);
+        
+        if (bundle && bundle.entry) {
+          const serviceRequests = bundle.entry
+            .filter((e: any) => e.resource.resourceType === 'ServiceRequest')
+            .map((e: any) => e.resource);
+
+          const tasks = bundle.entry
+            .filter((e: any) => e.resource.resourceType === 'Task')
+            .map((e: any) => e.resource);
+
+          const processed = serviceRequests.map((sr: FhirServiceRequest) => {
+            const relatedTasks = tasks.filter((task: FhirTask) => 
+              task.basedOn?.some(ref => ref.reference === `ServiceRequest/${sr.id}`)
+            );
+            const completedTasks = relatedTasks.filter(t => t.status === 'completed').length;
+            const totalTasks = relatedTasks.length;
+            const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+
+            return { serviceRequest: sr, tasks: relatedTasks, totalTasks, completedTasks, progress };
+          });
+
+          setAssessments(processed);
+        }
+      } catch (error) {
+        console.error("Failed to acquire token or fetch assessments:", error);
+        // Handle cases where silent token acquisition fails (e.g., session expired)
+        if (error instanceof Error && error.name === "InteractionRequiredAuthError") {
+            instance.acquireTokenPopup(loginRequest);
+        }
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     loadAssessments();
-  }, []);
+  }, [accounts, instance]);
 
   const handleAssessmentClick = (assessment: ProcessedAssessment) => {
     openModal(
@@ -147,8 +170,6 @@ export default function RemoteMonitoringPage() {
         ) : assessments.length > 0 ? (
             <div className="space-y-4">
                 {assessments.map(assessment => (
-                    // --- KEY PROP LOCATION #2 ---
-                    // This key is crucial for the main list of assessment cards.
                     <AssessmentCard 
                         key={assessment.serviceRequest.id} 
                         assessment={assessment}

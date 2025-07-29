@@ -4,10 +4,16 @@ import { python_url } from "@/constants/ApiConstants";
 
 /**
  * Fetches the FHIR Bundle containing Observations and linked DocumentReferences for a patient.
+ * @param patientId - The ID of the patient.
+ * @param authToken - The user's valid access token.
  */
-export async function getObservationsForPatient(patientId: string) {
+export async function getObservationsForPatient(patientId: string, authToken: string) {
+  if (!authToken) {
+    console.error("getObservationsForPatient failed: Auth token not provided.");
+    return null;
+  }
+
   const url = `${python_url}/observations/${patientId}`;
-  const authToken = "fake-practitioner-token-leeds"; // For testing
 
   try {
     const response = await fetch(url, {
@@ -16,6 +22,7 @@ export async function getObservationsForPatient(patientId: string) {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${authToken}`
       },
+      cache: 'no-store',
     });
 
     if (!response.ok) {
@@ -27,6 +34,6 @@ export async function getObservationsForPatient(patientId: string) {
 
   } catch (error) {
     console.error("Error fetching observations:", error);
-    return null; // Return null on error
+    return null;
   }
 }

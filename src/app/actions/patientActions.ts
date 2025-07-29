@@ -1,53 +1,93 @@
-// src/app/actions/patientActions.ts
 "use server";
-    
+
 import { python_url } from "@/constants/ApiConstants";
 import { revalidatePath } from "next/cache";
+import { FhirPatient } from "@/types/global";
 
-// Define the shape of the data coming from our form
+// Define the shape of the data coming from the patient creation form
 type PatientFormData = {
   firstName: string;
   lastName: string;
   dob: string;
-  gender: string;
-  nhsNumber: string;
-  mrn: string;
+  gender: string | null;
+  nhsNumber: string | null;
+  mrn: string | null;
   phone: string;
-  addressLine: string;
-  city: string;
-  postalCode: string;
-  country: string;
+  addressLine: string | null;
+  city: string | null;
+  postalCode: string | null;
+  country: string | null;
 };
 
-export async function createPatient(data: PatientFormData) {
-  const url = `${python_url}/patient`; // The backend endpoint for creating a patient
+/**
+ * Creates a new patient resource.
+ * @param data - The form data.
+ * @param authToken - The user's valid access token.
+ */
+export async function createPatient(data: PatientFormData, authToken: string) {
+  if (!authToken) {
+    return { success: false, message: "Authentication error: Auth token not provided." };
+  }
 
-  console.log("Sending patient data to backend:", JSON.stringify(data, null, 2));
+  const url = `${python_url}/patient`;
 
   try {
-    // --- THIS IS THE NEWLY ADDED FETCH REQUEST ---
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
+      headers: { 
         'Content-Type': 'application/json',
-        // In a real app with auth, you would add your Authorization header here
+        'Authorization': `Bearer ${authToken}`
       },
       body: JSON.stringify(data),
     });
 
     if (!response.ok) {
-      // Handle errors from the backend
       const errorData = await response.json();
       throw new Error(errorData.detail || 'Failed to create patient.');
     }
     
-    revalidatePath("/(dashboard)"); 
+    revalidatePath("/patient-browser"); 
     return { success: true, message: "Patient created successfully!" };
-
   } catch (error) {
     if (error instanceof Error) {
       return { success: false, message: error.message };
     }
     return { success: false, message: "An unknown error occurred." };
+  }
+}
+
+/**
+ * Fetches the full details for a single patient from the backend.
+ * @param patientId - The ID of the patient to fetch.
+ * @param authToken - The user's valid access token.
+ */
+export async function getPatientDetails(patientId: string, authToken: string): Promise<FhirPatient | null> {
+  if (!authToken) {
+    console.error("getPatientDetails failed: User is not authenticated.");
+    return null;
+  }
+
+  const url = `${python_url}/patient/${patientId}`;
+
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${authToken}`
+      },
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || 'Failed to fetch patient details.');
+    }
+
+    const data = await response.json();
+    return data.patient;
+
+  } catch (error) {
+    console.error("Error fetching patient details:", error);
+    return null;
   }
 }

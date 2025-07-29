@@ -11,12 +11,15 @@ import {
 } from "@/components/view/(dashboard)/Forms";
 import { searchPatients } from "@/app/actions/patientSearchActions";
 import { FhirPatient } from "@/types/global";
+import { useMsal } from "@azure/msal-react";
+import { loginRequest } from "@/authConfig";
 import { Plus, Search, UserPlus, ChevronDown, Loader, Inbox } from "lucide-react";
 
 export default function PatientBrowserPage() {
   const { patients: recentPatients, isLoading, loadPatients } = usePatientStore();
   const { openModal, closeModal } = useDashboardModal();
   const router = useRouter();
+  const { instance, accounts } = useMsal(); // Get MSAL instance for token acquisition
 
   const [isDropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -26,6 +29,7 @@ export default function PatientBrowserPage() {
   const [hasSearched, setHasSearched] = useState(false);
 
   useEffect(() => {
+    // This will be updated later to fetch real data
     loadPatients();
   }, [loadPatients]);
 
@@ -34,10 +38,7 @@ export default function PatientBrowserPage() {
   };
 
   const handleCreateAssessment = (patient?: FhirPatient) => {
-    openModal(
-      <CreateAssessmentForm onClose={closeModal} patient={patient} />,
-      '2xl'
-    );
+    openModal(<CreateAssessmentForm onClose={closeModal} patient={patient} />, '2xl');
   };
 
   const handleCreatePatient = () => {
@@ -55,11 +56,34 @@ export default function PatientBrowserPage() {
         setHasSearched(false);
         return;
     };
+
+    if (accounts.length === 0) {
+        alert("Please log in to perform a search.");
+        return;
+    }
+
     setIsSearching(true);
     setHasSearched(true);
-    const results = await searchPatients(searchQuery);
-    setSearchResults(results);
-    setIsSearching(false);
+
+    try {
+      // 1. Silently acquire an access token
+      const response = await instance.acquireTokenSilent({
+          ...loginRequest,
+          account: accounts[0]
+      });
+
+      // 2. Pass the real token to the server action
+      const results = await searchPatients(searchQuery, response.accessToken);
+      setSearchResults(results);
+
+    } catch (error) {
+      console.error("Token acquisition or search failed:", error);
+      if (error instanceof Error && error.name === "InteractionRequiredAuthError") {
+          instance.acquireTokenPopup(loginRequest);
+      }
+    } finally {
+      setIsSearching(false);
+    }
   };
 
   useEffect(() => {

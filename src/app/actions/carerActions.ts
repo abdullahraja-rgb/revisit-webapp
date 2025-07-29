@@ -1,33 +1,38 @@
-// src/app/actions/carerActions.ts
 "use server";
     
 import { python_url } from "@/constants/ApiConstants";
 import { revalidatePath } from "next/cache";
 
-// Define the shape of the data coming from the carer form
 type CarerFormData = {
   firstName: string;
   lastName: string;
   gender: string;
   phone: string;
   patientId: string; 
-  patientName: string; // Added patient's name for the 'display' field
+  patientName: string;
   relationship: string;
-  relationshipDisplay: string; // Added relationship display text
+  relationshipDisplay: string;
 };
 
 /**
  * Receives carer data from the form and posts it to the Python backend.
+ * @param data - The form data.
+ * @param authToken - The user's valid access token.
  */
-export async function createCarer(data: CarerFormData) {
+export async function createCarer(data: CarerFormData, authToken: string) {
   const url = `${python_url}/carer`; 
 
-  console.log("Sending carer data to backend:", JSON.stringify(data, null, 2));
+  if (!authToken) {
+    return { success: false, message: "Authentication error: Auth token not provided." };
+  }
 
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
       body: JSON.stringify(data),
     });
 
@@ -36,7 +41,7 @@ export async function createCarer(data: CarerFormData) {
       throw new Error(errorData.detail || 'Failed to create carer.');
     }
     
-    revalidatePath("/(dashboard)"); 
+    revalidatePath("/patient-browser"); 
     return { success: true, message: "Carer created successfully!" };
 
   } catch (error) {

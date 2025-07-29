@@ -1,29 +1,26 @@
 "use server";
 
-// The python_url is now directly accessed from process.env
-// This is a more robust way to handle environment variables in server actions.
-const python_url = process.env.PYTHON_URI;
+import { python_url } from "@/constants/ApiConstants";
 
 /**
  * Fetches the FHIR Bundle containing all ServiceRequests (assessments)
  * and their related Task resources for the logged-in practitioner's tenant.
+ * @param authToken - The user's valid access token.
  */
-export async function getAssessments() {
-  // --- THIS IS THE FIX ---
-  // We add a check to ensure the backend URL is configured.
-  if (!python_url) {
-    throw new Error("Backend URL is not configured. Please check your .env.local file.");
-  }
-
+export async function getAssessments(authToken: string) {
   const url = `${python_url}/assessments`;
-  // In a real app, the token would be retrieved from the user's session
-  const authToken = "fake-practitioner-token-leeds";
+
+  if (!authToken) {
+    console.error("getAssessments failed: Auth token was not provided.");
+    return null;
+  }
 
   try {
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        // Send the real token to the backend
         'Authorization': `Bearer ${authToken}`
       },
       cache: 'no-store', 
@@ -34,10 +31,10 @@ export async function getAssessments() {
       throw new Error(errorData.detail || 'Failed to fetch assessments.');
     }
 
-    return await response.json(); // Return the full FHIR Bundle
+    return await response.json();
 
   } catch (error) {
     console.error("Error fetching assessments:", error);
-    return null; // Return null on error
+    return null;
   }
 }

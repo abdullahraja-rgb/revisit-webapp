@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { FhirPatient, FhirObservation, FhirDocumentReference } from '@/types/global';
 import { getObservationsForPatient } from '@/app/actions/observationActions';
 import { generateSecureModelUrl } from '@/app/actions/documentActions';
+import { useMsal } from "@azure/msal-react";
+import { loginRequest } from "@/authConfig";
 import { Camera, Video, Box, Loader, User, Cake, Phone, Home as HomeIcon, Hash } from 'lucide-react';
 
 type PatientProfileModalProps = {
@@ -12,7 +14,7 @@ type PatientProfileModalProps = {
   onCreateAssessment: (patient: FhirPatient) => void;
 };
 
-// A dedicated component for the improved Overview tab
+// The OverviewTab component remains the same
 const OverviewTab = ({ patient }: { patient: FhirPatient }) => {
     const patientName = patient.name?.[0];
     const address = patient.address?.[0];
@@ -56,39 +58,53 @@ const OverviewTab = ({ patient }: { patient: FhirPatient }) => {
 
 
 const PatientProfileModal: React.FC<PatientProfileModalProps> = ({ patient, onCreateAssessment }) => {
-  const [activeTab, setActiveTab] = useState<'Overview' | 'Observations' | 'Assessments'>('Overview');
   const router = useRouter();
+  const { instance, accounts } = useMsal(); // Get the MSAL instance
+  const [activeTab, setActiveTab] = useState<'Overview' | 'Observations' | 'Assessments'>('Overview');
   const [observations, setObservations] = useState<FhirObservation[]>([]);
   const [docReferences, setDocReferences] = useState<FhirDocumentReference[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isGeneratingUrl, setIsGeneratingUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    // Only load observations if the tab is clicked and data hasn't been fetched yet
-    if (activeTab === 'Observations' && observations.length === 0) {
+    if (activeTab === 'Observations' && observations.length === 0 && accounts.length > 0) {
         const loadData = async () => {
-          setIsLoading(true);
-          const bundle = await getObservationsForPatient(patient.id);
-          if (bundle && bundle.entry) {
-            const obs = bundle.entry.filter((e: any) => e.resource.resourceType === 'Observation').map((e: any) => e.resource);
-            const docs = bundle.entry.filter((e: any) => e.resource.resourceType === 'DocumentReference').map((e: any) => e.resource);
-            setObservations(obs);
-            setDocReferences(docs);
-          }
-          setIsLoading(false);
+            setIsLoading(true);
+            try {
+                const tokenResponse = await instance.acquireTokenSilent({ ...loginRequest, account: accounts[0] });
+                const bundle = await getObservationsForPatient(patient.id, tokenResponse.accessToken);
+                if (bundle && bundle.entry) {
+                    const obs = bundle.entry.filter((e: any) => e.resource.resourceType === 'Observation').map((e: any) => e.resource);
+                    const docs = bundle.entry.filter((e: any) => e.resource.resourceType === 'DocumentReference').map((e: any) => e.resource);
+                    setObservations(obs);
+                    setDocReferences(docs);
+                }
+            } catch (error) {
+                console.error("Failed to load observations:", error);
+            } finally {
+                setIsLoading(false);
+            }
         };
         loadData();
     }
-  }, [patient.id, activeTab, observations.length]);
+  }, [patient.id, activeTab, observations.length, accounts, instance]);
 
   const handleViewModel = async (observation: FhirObservation) => {
     setIsGeneratingUrl(observation.id);
+    
+    if (accounts.length === 0) {
+        alert("Authentication error. Please log in again.");
+        setIsGeneratingUrl(null);
+        return;
+    }
+
     const docRef = docReferences.find(doc => observation.derivedFrom?.some(ref => ref.reference === `DocumentReference/${doc.id}`));
     if (!docRef || !docRef.content?.[0]?.attachment?.url) {
       alert("No document URL found for this observation.");
       setIsGeneratingUrl(null);
       return;
     }
+
     const blobUrl = docRef.content[0].attachment.url;
     const containerName = "revisit-uploads"; 
     const blobName = blobUrl.split(`/${containerName}/`)[1];
@@ -97,16 +113,32 @@ const PatientProfileModal: React.FC<PatientProfileModalProps> = ({ patient, onCr
         setIsGeneratingUrl(null);
         return;
     }
-    const secureUrl = await generateSecureModelUrl(blobName);
-    if (secureUrl) {
-      const patientName = patient.name?.[0] ? `${patient.name[0].given.join(' ')} ${patient.name[0].family}` : 'Unknown Patient';
-      const modelName = observation.code?.coding?.[0]?.display || '3D Model';
-      const workspaceUrl = `/workspace?modelUrl=${encodeURIComponent(secureUrl)}&patientName=${encodeURIComponent(patientName)}&modelName=${encodeURIComponent(modelName)}`;
-      router.push(workspaceUrl);
-    } else {
-      alert("Failed to get a secure link to view the model.");
+    
+    try {
+        // --- THIS IS THE FIX ---
+        // 1. Acquire a token before calling the action
+        const tokenResponse = await instance.acquireTokenSilent({
+            ...loginRequest,
+            account: accounts[0]
+        });
+
+        // 2. Pass the real token to the server action
+        const secureUrl = await generateSecureModelUrl(blobName, tokenResponse.accessToken);
+
+        if (secureUrl) {
+          const patientName = patient.name?.[0] ? `${patient.name[0].given.join(' ')} ${patient.name[0].family}` : 'Unknown Patient';
+          const modelName = observation.code?.coding?.[0]?.display || '3D Model';
+          const workspaceUrl = `/workspace?modelUrl=${encodeURIComponent(secureUrl)}&patientName=${encodeURIComponent(patientName)}&modelName=${encodeURIComponent(modelName)}`;
+          router.push(workspaceUrl);
+        } else {
+          alert("Failed to get a secure link to view the model.");
+        }
+    } catch (error) {
+        console.error("Failed to acquire token for SAS URL:", error);
+        alert("Could not get permission to view the model. Please try logging in again.");
+    } finally {
+        setIsGeneratingUrl(null);
     }
-    setIsGeneratingUrl(null);
   };
 
   const patientName = patient.name?.[0];

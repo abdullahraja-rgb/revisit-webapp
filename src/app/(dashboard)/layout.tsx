@@ -50,7 +50,7 @@ function AuthenticatedView({ children }: { children: React.ReactNode }) {
     const navLinks = [
         { href: "/", text: "Dashboard", icon: <LayoutDashboard className="w-5 h-5 mr-3" /> },
         { href: "/patient-browser", text: "Patient Browser", icon: <Users className="w-5 h-5 mr-3" /> },
-        { href: "/remote-monitoring", text: "Remote Monitoring", icon: <Activity className="w-5 h-5 mr-3" /> },
+        { href: "/remote-monitoring", text: "Remote Assessments", icon: <Activity className="w-5 h-5 mr-3" /> },
     ];
     
     const activeLink = navLinks

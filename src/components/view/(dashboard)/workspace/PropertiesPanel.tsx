@@ -5,6 +5,7 @@ import { useViewerStore } from "@/stores/viewerStore";
 import { usePatientStore } from "@/stores/patientStore";
 
 export default function PropertiesPanel() {
+  console.log("Properties Panel is re-rendering");
   const { displayOptions, setDisplayOption, transform, setTransform, modelInfo } = useViewerStore();
 
   const {} = usePatientStore();

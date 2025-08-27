@@ -6,19 +6,15 @@ import { ToastProvider } from "@/contexts/ToastContext";
 import ToastContainer from "@/components/ui/toast/ToastContainer";
 import { BASE_METADATA, ICONS, VIEWPORT } from "@/constants/website";
 
-// --- NEW: MSAL Imports ---
+
 import { MsalProvider } from "@azure/msal-react";
 import { PublicClientApplication } from "@azure/msal-browser";
-import { msalConfig } from "../authConfig"; // Make sure this path is correct
+import { msalConfig } from "../authConfig"; 
 
-// Create an MSAL instance outside of the component to avoid re-creating it on every render
+
 const msalInstance = new PublicClientApplication(msalConfig);
 
-// Note: The 'export const metadata' and 'export const viewport' are typically
-// used in Server Components. In a Client Component layout, you might manage
-// the title and meta tags differently, e.g., using a custom hook or component.
-// For now, we will leave them, but be aware they may not function as expected
-// in a top-level client layout.
+
 
 export default function RootLayout({
   children,

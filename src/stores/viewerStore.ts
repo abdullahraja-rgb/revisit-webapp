@@ -8,6 +8,7 @@ export interface Measurement {
   points: Array<[number, number, number]>;
   value: number;
   label: string;
+  visible: boolean;
 }
 
 export interface DisplayOptions {
@@ -100,6 +101,18 @@ export interface ActiveTools {
   measurementType: "distance" | "angle" | "area";
 }
 
+export interface ZoomOptions {
+  zoomType: "scroll" | "doubleClick" | "box" | "region";
+  zoomSpeed: number; // 0.1 to 2.0
+  zoomToFit: boolean;
+  zoomToSelection: boolean;
+  smoothZoom: boolean;
+  zoomLimits: {
+    min: number;
+    max: number;
+  };
+}
+
 export interface SelectionMode {
   select: boolean;
   face: boolean;
@@ -110,15 +123,28 @@ export interface SelectionMode {
 export interface ViewerState {
   // Model scaling factor and unit conversion
   modelScale: number;
-  unitConversionFactor: number; // Factor to convert model units to meters
   setModelScale: (scale: number) => void;
-  setUnitConversionFactor: (factor: number) => void;
+
+  // Calibration system
+  isCalibrated: boolean;
+  calibrationFactor: number;
+  showCalibrationModal: boolean;
+  setShowCalibrationModal: (show: boolean) => void;
+  setCalibration: (actualMeasurement: number, deviceMeasurement: number) => void;
+  resetCalibration: () => void;
 
   // Active tools
   activeTools: ActiveTools;
   setActiveTool: (tool: keyof Omit<ActiveTools, "measurementType">, active: boolean) => void;
   setMeasurementType: (type: "distance" | "angle" | "area") => void;
   toggleMeasurementTool: (type: "distance" | "angle" | "area") => void;
+
+  // Zoom options
+  zoomOptions: ZoomOptions;
+  setZoomOption: (option: keyof ZoomOptions, value: ZoomOptions[keyof ZoomOptions]) => void;
+  setZoomType: (type: ZoomOptions["zoomType"]) => void;
+  zoomToFitModel: () => void;
+  zoomToSelection: () => void;
 
   // Selection mode
   selectionMode: SelectionMode;
@@ -152,6 +178,7 @@ export interface ViewerState {
   addMeasurement: (measurement: Omit<Measurement, "id">) => void;
   clearMeasurements: () => void;
   removeMeasurement: (id: string) => void;
+  toggleMeasurementVisibility: (id: string) => void;
 
   // Measurement points (for active measurement)
   measurementPoints: Array<[number, number, number]>;
@@ -219,6 +246,52 @@ export const useViewerStore = create<ViewerState>((set, get) => ({
         measurementType: type,
       },
     }));
+  },
+
+  // Zoom options state and methods
+  zoomOptions: {
+    zoomType: "doubleClick",
+    zoomSpeed: 1.0,
+    zoomToFit: true,
+    zoomToSelection: false,
+    smoothZoom: true,
+    zoomLimits: {
+      min: 0.1,
+      max: 50,
+    },
+  },
+
+  setZoomOption: (option, value) => {
+    set((state) => ({
+      zoomOptions: {
+        ...state.zoomOptions,
+        [option]: value,
+      },
+    }));
+  },
+
+  setZoomType: (type) => {
+    set((state) => ({
+      zoomOptions: {
+        ...state.zoomOptions,
+        zoomType: type,
+      },
+    }));
+  },
+
+  zoomToFitModel: () => {
+    // This will be handled by the camera controls in the component
+    console.log("🎯 Zoom to fit model - Enhanced zoom capabilities");
+  },
+
+  zoomToSelection: () => {
+    // This will be handled by the camera controls in the component
+    const { selectedMeshes } = get();
+    if (selectedMeshes.size === 0) {
+      console.warn("⚠️ No objects selected for zoom to selection");
+      return;
+    }
+    console.log(`🎯 Zoom to selection - ${selectedMeshes.size} objects selected`);
   },
 
   toggleMeasurementTool: (type) => {
@@ -443,6 +516,14 @@ export const useViewerStore = create<ViewerState>((set, get) => ({
     }));
   },
 
+  toggleMeasurementVisibility: (id) => {
+    set((state) => ({
+      measurements: state.measurements.map((m) =>
+        m.id === id ? { ...m, visible: !m.visible } : m
+      ),
+    }));
+  },
+
   // Measurement points
   measurementPoints: [],
 
@@ -491,25 +572,38 @@ export const useViewerStore = create<ViewerState>((set, get) => ({
   },
 
   completeMeasurement: () => {
-    const { measurementPoints, activeTools, unitConversionFactor } = get();
+    const { measurementPoints, activeTools, measurements, isCalibrated } = get();
     const measurementType = activeTools.measurementType;
 
     let requiredPoints = 2; // Default for distance
     if (measurementType === "angle") requiredPoints = 3;
     if (measurementType === "area") requiredPoints = 4;
 
-    // console.log(`🎯 Attempting to complete ${measurementType} measurement:`, {
-    //   currentPoints: measurementPoints.length,
-    //   requiredPoints,
-    //   points: measurementPoints,
-    // });
-
     if (measurementPoints.length >= requiredPoints) {
       const pointsToUse = measurementPoints.slice(0, requiredPoints);
-      const measurement = calculateMeasurement(pointsToUse, measurementType, unitConversionFactor);
-      get().addMeasurement(measurement);
+      const measurement = calculateMeasurement(
+        pointsToUse,
+        measurementType,
+        get().calibrationFactor
+      );
+
+      // Check if this is the first distance measurement and we're not calibrated yet
+      const isFirstDistanceMeasurement =
+        measurementType === "distance" &&
+        !isCalibrated &&
+        measurements.filter((m) => m.type === "distance").length === 0;
+
+      if (isFirstDistanceMeasurement) {
+        // Store the measurement temporarily and show calibration modal
+        get().addMeasurement(measurement);
+        get().setShowCalibrationModal(true);
+        console.log(`📏 First distance measurement completed. Showing calibration modal.`);
+      } else {
+        get().addMeasurement(measurement);
+        console.log(`✅ Measurement completed:`, measurement);
+      }
+
       get().clearMeasurementPoints();
-      // console.log(`✅ Measurement completed:`, measurement);
     } else {
       console.log(
         `❌ Not enough points to complete ${measurementType} measurement. Need ${requiredPoints}, have ${measurementPoints.length}`
@@ -602,12 +696,54 @@ export const useViewerStore = create<ViewerState>((set, get) => ({
 
   // Model scaling factor and unit conversion
   modelScale: 1,
-  unitConversionFactor: 2.0, // Based on user's measurement analysis
   setModelScale: (scale) => {
     set({ modelScale: scale });
   },
-  setUnitConversionFactor: (factor) => {
-    set({ unitConversionFactor: factor });
+
+  // Calibration system
+  isCalibrated: false,
+  calibrationFactor: 1,
+  showCalibrationModal: false,
+  setShowCalibrationModal: (show) => {
+    set({ showCalibrationModal: show });
+  },
+  setCalibration: (actualMeasurement, deviceMeasurement) => {
+    const factor = actualMeasurement / deviceMeasurement;
+
+    // Update existing distance measurements with the new calibration factor
+    const currentState = get();
+    const updatedMeasurements = currentState.measurements.map((measurement) => {
+      if (measurement.type === "distance") {
+        // Recalculate the distance with the calibration factor
+        const points = measurement.points;
+        const v = points.map((p) => new THREE.Vector3(...p));
+        const rawDistance = v[0].distanceTo(v[1]);
+        const calibratedDistance = rawDistance * factor;
+
+        return {
+          ...measurement,
+          value: calibratedDistance,
+          label: `${calibratedDistance.toFixed(2)}m`,
+          visible: measurement.visible, // Preserve visibility state
+        };
+      }
+      return measurement;
+    });
+
+    set({
+      calibrationFactor: factor,
+      isCalibrated: true,
+      measurements: updatedMeasurements,
+    });
+    console.log(
+      `📏 Calibration successful. Factor: ${factor.toFixed(4)}. Updated ${
+        updatedMeasurements.filter((m) => m.type === "distance").length
+      } distance measurements.`
+    );
+  },
+  resetCalibration: () => {
+    set({ calibrationFactor: 1, isCalibrated: false });
+    console.log("🔄 Calibration reset.");
   },
 }));
 
@@ -615,27 +751,21 @@ export const useViewerStore = create<ViewerState>((set, get) => ({
 function calculateMeasurement(
   points: Array<[number, number, number]>,
   type: "distance" | "angle" | "area",
-  unitConversionFactor: number
+  calibrationFactor: number = 1
 ): Omit<Measurement, "id"> {
   const v = points.map((p) => new THREE.Vector3(...p));
 
   switch (type) {
     case "distance": {
-      const distance = v[0].distanceTo(v[1]);
-      const realDistance = distance * unitConversionFactor;
-
-      // console.log(`📏 Distance calculation:`, {
-      //   rawDistance: distance.toFixed(3),
-      //   conversionFactor: unitConversionFactor,
-      //   realDistance: realDistance.toFixed(3),
-      //   formula: `${distance.toFixed(3)} × ${unitConversionFactor} = ${realDistance.toFixed(3)}m`,
-      // });
+      const rawDistance = v[0].distanceTo(v[1]);
+      const calibratedDistance = rawDistance * calibrationFactor;
 
       return {
         type: "distance",
         points,
-        value: realDistance,
-        label: `${realDistance.toFixed(2)}m`,
+        value: calibratedDistance,
+        label: `${calibratedDistance.toFixed(2)}m`,
+        visible: true,
       };
     }
 
@@ -648,6 +778,7 @@ function calculateMeasurement(
         points,
         value: angle,
         label: `${angle.toFixed(1)}°`,
+        visible: true,
       };
     }
 
@@ -660,8 +791,9 @@ function calculateMeasurement(
       return {
         type: "area",
         points,
-        value: area * unitConversionFactor * unitConversionFactor,
-        label: `${(area * unitConversionFactor * unitConversionFactor).toFixed(2)}m²`,
+        value: area,
+        label: `${area.toFixed(2)}m²`,
+        visible: true,
       };
     }
 

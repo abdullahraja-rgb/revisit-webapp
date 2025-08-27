@@ -44,7 +44,7 @@ const AccessDenied = () => (
 
 export default function AdminPage() {
   const { openModal, closeModal } = useDashboardModal();
-  const { isAdmin } = useAuthRoles();
+  const { isOrgAdmin } = useAuthRoles();
 
   const handleCreatePractitioner = () => {
     openModal(<CreatePractitionerForm onClose={closeModal} />, "2xl");
@@ -87,17 +87,17 @@ export default function AdminPage() {
               </div>
               <div>
                 <h1 className="text-5xl font-black tracking-tight bg-gradient-to-r from-gray-900 via-blue-900 to-indigo-900 bg-clip-text text-transparent mb-2">
-                  Admin Dashboard
+                  Organisational Admin Dashboard
                 </h1>
                 <p className="text-xl text-gray-600 font-medium">
-                  Manage users, organizations, and care groups with precision
+                  Manage users, organizations, and care groups in your organisation
                 </p>
               </div>
             </div>
           </div>
         </div>
 
-        {isAdmin ? (
+        {isOrgAdmin ? (
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
             {/* User Management Card */}
             <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-100 p-8 shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 border border-blue-200/50">

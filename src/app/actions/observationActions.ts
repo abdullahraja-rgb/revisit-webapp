@@ -2,11 +2,7 @@
 
 import { python_url } from "@/constants/ApiConstants";
 
-/**
- * Fetches the FHIR Bundle containing Observations and linked DocumentReferences for a patient.
- * @param patientId - The ID of the patient.
- * @param authToken - The user's valid access token.
- */
+
 export async function getObservationsForPatient(patientId: string, authToken: string) {
   if (!authToken) {
     console.error("getObservationsForPatient failed: Auth token not provided.");

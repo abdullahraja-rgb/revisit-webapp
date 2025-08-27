@@ -1,25 +1,22 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useViewerStore } from "@/stores/viewerStore";
 
 const MeasurementsPanel: React.FC = () => {
+  console.log("Measurment Panel is re-rendering");
   const {
     measurements,
     removeMeasurement,
     clearMeasurements,
     isFullscreen,
-    unitConversionFactor,
-    setUnitConversionFactor,
+    isCalibrated,
+    calibrationFactor,
+    resetCalibration,
   } = useViewerStore();
 
-  const [isEditingFactor, setIsEditingFactor] = useState(false);
-  const [tempFactor, setTempFactor] = useState(unitConversionFactor.toString());
-
-  // Sync tempFactor with unitConversionFactor when it changes
-  useEffect(() => {
-    setTempFactor(unitConversionFactor.toString());
-  }, [unitConversionFactor]);
+  // Filter to show only visible measurements
+  const visibleMeasurements = measurements.filter((m) => m.visible);
 
   const getMeasurementIcon = (type: string) => {
     switch (type) {
@@ -51,21 +48,6 @@ const MeasurementsPanel: React.FC = () => {
     return `(${point[0].toFixed(2)}, ${point[1].toFixed(2)}, ${point[2].toFixed(2)})`;
   };
 
-  const handleFactorUpdate = () => {
-    const newFactor = parseFloat(tempFactor);
-    if (!isNaN(newFactor) && newFactor > 0) {
-      setUnitConversionFactor(newFactor);
-      setIsEditingFactor(false);
-    } else {
-      alert("Please enter a valid positive number");
-    }
-  };
-
-  const handleFactorCancel = () => {
-    setTempFactor(unitConversionFactor.toString());
-    setIsEditingFactor(false);
-  };
-
   return (
     <div
       className={`h-full overflow-y-auto transition-all ${
@@ -90,78 +72,54 @@ const MeasurementsPanel: React.FC = () => {
           )}
         </div>
 
-        {/* Conversion Factor Settings */}
-        <div
-          className={`mb-4 p-3 rounded-lg ${
-            isFullscreen ? "bg-gray-800 bg-opacity-40" : "bg-blue-50"
-          }`}
-        >
-          <h4
-            className={`text-sm font-medium mb-2 ${
-              isFullscreen ? "text-blue-300" : "text-blue-800"
+        {/* Calibration Status */}
+        {isCalibrated && (
+          <div
+            className={`mb-4 p-3 rounded-lg ${
+              isFullscreen
+                ? "bg-green-800 bg-opacity-40 border border-green-600"
+                : "bg-green-50 border border-green-200"
             }`}
           >
-            🔧 Conversion Settings
-          </h4>
-          <div className={`text-xs space-y-2 ${isFullscreen ? "text-gray-300" : "text-blue-700"}`}>
             <div className="flex items-center justify-between">
-              <span>Conversion Factor:</span>
-              {isEditingFactor ? (
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={tempFactor}
-                    onChange={(e) => setTempFactor(e.target.value)}
-                    className={`w-20 px-2 py-1 text-xs rounded border ${
-                      isFullscreen
-                        ? "bg-gray-700 border-gray-600 text-white"
-                        : "bg-white border-gray-300"
-                    }`}
-                  />
-                  <button
-                    onClick={handleFactorUpdate}
-                    className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
-                  >
-                    ✓
-                  </button>
-                  <button
-                    onClick={handleFactorCancel}
-                    className="px-2 py-1 text-xs bg-gray-600 text-white rounded hover:bg-gray-700"
-                  >
-                    ✗
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center space-x-2">
-                  <span className="font-mono">{unitConversionFactor.toFixed(1)}</span>
-                  <button
-                    onClick={() => {
-                      setIsEditingFactor(true);
-                      setTempFactor(unitConversionFactor.toString());
-                    }}
-                    className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
-                  >
-                    Edit
-                  </button>
-                </div>
-              )}
-            </div>
-            <div className="text-xs text-gray-500">
-              Formula: Model Distance × {unitConversionFactor.toFixed(1)} = Real Distance
+              <div>
+                <h4
+                  className={`text-sm font-medium ${
+                    isFullscreen ? "text-green-300" : "text-green-800"
+                  }`}
+                >
+                  📏 Calibrated
+                </h4>
+                <p className={`text-xs ${isFullscreen ? "text-green-400" : "text-green-600"}`}>
+                  Factor: {calibrationFactor.toFixed(4)}
+                </p>
+              </div>
+              <button
+                onClick={resetCalibration}
+                className="px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                title="Reset calibration"
+              >
+                Reset
+              </button>
             </div>
           </div>
-        </div>
+        )}
 
-        {measurements.length === 0 ? (
+        {visibleMeasurements.length === 0 ? (
           <div className={`text-center py-8 ${isFullscreen ? "text-gray-300" : "text-gray-500"}`}>
             <div className="text-4xl mb-2">📏</div>
-            <p className="text-sm">No measurements taken yet</p>
-            <p className="text-xs mt-1">Use the measurement tools on the left to start measuring</p>
+            <p className="text-sm">
+              {measurements.length === 0 ? "No measurements taken yet" : "No visible measurements"}
+            </p>
+            <p className="text-xs mt-1">
+              {measurements.length === 0
+                ? "Use the measurement tools on the left to start measuring"
+                : "Use the sidebar to show hidden measurements"}
+            </p>
           </div>
         ) : (
           <div className="space-y-3">
-            {measurements.map((measurement, index) => (
+            {visibleMeasurements.map((measurement, index) => (
               <div
                 key={measurement.id}
                 className={`p-3 rounded-lg border transition-all ${
@@ -217,15 +175,9 @@ const MeasurementsPanel: React.FC = () => {
                   ))}
 
                   {measurement.type === "distance" && (
-                    <div className="mt-2 pt-2 border-t border-gray-300 space-y-1">
+                    <div className="mt-2 pt-2 border-t border-gray-300">
                       <div>
-                        <span className="font-medium">Raw Distance: </span>
-                        <span className="font-mono">
-                          {(measurement.value / unitConversionFactor).toFixed(3)} units
-                        </span>
-                      </div>
-                      <div>
-                        <span className="font-medium">Real Distance: </span>
+                        <span className="font-medium">Distance: </span>
                         <span className="font-mono">{measurement.value.toFixed(2)} m</span>
                       </div>
                     </div>
@@ -267,13 +219,11 @@ const MeasurementsPanel: React.FC = () => {
               className={`text-xs space-y-1 ${isFullscreen ? "text-gray-300" : "text-green-700"}`}
             >
               <div>Total measurements: {measurements.length}</div>
+              <div>Visible measurements: {visibleMeasurements.length}</div>
               <div>
-                Distance: {measurements.filter((m) => m.type === "distance").length} | Angle:{" "}
-                {measurements.filter((m) => m.type === "angle").length} | Area:{" "}
-                {measurements.filter((m) => m.type === "area").length}
-              </div>
-              <div className="text-green-600 font-medium">
-                🎯 Using conversion factor: {unitConversionFactor.toFixed(1)}
+                Distance: {visibleMeasurements.filter((m) => m.type === "distance").length} | Angle:{" "}
+                {visibleMeasurements.filter((m) => m.type === "angle").length} | Area:{" "}
+                {visibleMeasurements.filter((m) => m.type === "area").length}
               </div>
             </div>
           </div>

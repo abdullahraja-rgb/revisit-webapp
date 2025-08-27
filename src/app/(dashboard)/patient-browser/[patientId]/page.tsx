@@ -45,8 +45,8 @@ export default function PatientOverviewPage() {
         />
         <DetailItem
           icon={<Cake size={20} />}
-          label="Date of Birth"
-          value={`${patient.birthDate} (${calculateAge(patient.birthDate)} years)`}
+          label="Age"
+          value={`${calculateAge(patient.birthDate)} (${patient.birthDate})`}
         />
         <DetailItem icon={<Hash size={20} />} label="NHS Number" value={nhsNumber} />
         <DetailItem icon={<Hash size={20} />} label="Medical Record Number" value={mrn} />

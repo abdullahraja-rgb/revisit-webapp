@@ -43,6 +43,8 @@ export default function WorkspaceSidebar({
     resetCamera,
     modelHierarchy,
     toggleHierarchyVisibility,
+    measurements,
+    toggleMeasurementVisibility,
   } = useViewerStore();
 
   const { toggleUploadModal } = usePatientStore();
@@ -338,6 +340,47 @@ export default function WorkspaceSidebar({
             </button>
           </div>
         </div>
+
+        {/* Measurement Visibility */}
+        {measurements.length > 0 && (
+          <div className="p-4 border-b border-gray-200">
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">Measurement Visibility</h3>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {measurements.map((measurement, index) => (
+                <div key={measurement.id} className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2 flex-1 min-w-0">
+                    <span className="text-sm">
+                      {measurement.type === "distance" && "📏"}
+                      {measurement.type === "angle" && "📐"}
+                      {measurement.type === "area" && "⬜"}
+                    </span>
+                    <span className="text-sm text-gray-700 truncate">
+                      {measurement.type.charAt(0).toUpperCase() + measurement.type.slice(1)} #
+                      {index + 1}
+                    </span>
+                    <span className="text-xs text-gray-500 font-mono">{measurement.label}</span>
+                  </div>
+                  <button
+                    onClick={() => toggleMeasurementVisibility(measurement.id)}
+                    className={clsx(
+                      "p-1 rounded transition-colors",
+                      measurement.visible
+                        ? "text-blue-600 hover:bg-blue-100"
+                        : "text-gray-400 hover:bg-gray-100"
+                    )}
+                    title={measurement.visible ? "Hide measurement" : "Show measurement"}
+                  >
+                    {measurement.visible ? (
+                      <Eye className="w-4 h-4" />
+                    ) : (
+                      <EyeOff className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Selection Tools */}
         <div className="p-4 border-b border-gray-200">

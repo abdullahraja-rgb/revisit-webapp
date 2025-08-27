@@ -47,3 +47,39 @@ export interface ModelMeasurement {
   unit: string;
   points: [number, number, number][];
 }
+
+export interface FhirCareTeam {
+  resourceType: "CareTeam";
+  id: string;
+  status: string;
+  name: string;
+  participant?: Array<{
+    member?: {
+      reference: string;
+      display?: string;
+    };
+  }>;
+  managingOrganization?: Array<{
+    reference: string;
+    display?: string;
+  }>;
+  meta?: {
+    security?: Array<{
+      system: string;
+      code: string;
+    }>;
+  };
+  identifier?: Array<{
+    system?: string;
+    value?: string;
+    type?: {
+      coding?: Array<{
+        code: string;
+      }>;
+    };
+  }>;
+  // Add these new optional fields for our approach
+  _orgId?: string;
+  _orgName?: string;
+}
+

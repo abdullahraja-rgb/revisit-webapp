@@ -29,7 +29,6 @@ export default function PatientBrowserPage() {
   const [hasSearched, setHasSearched] = useState(false);
 
   useEffect(() => {
-    // This will be updated later to fetch real data
     loadPatients();
   }, [loadPatients]);
 
@@ -66,13 +65,13 @@ export default function PatientBrowserPage() {
     setHasSearched(true);
 
     try {
-      // 1. Silently acquire an access token
+      // acquire an access token
       const response = await instance.acquireTokenSilent({
           ...loginRequest,
           account: accounts[0]
       });
 
-      // 2. Pass the real token to the server action
+      // Pass the real token to the server action
       const results = await searchPatients(searchQuery, response.accessToken);
       setSearchResults(results);
 

@@ -4,52 +4,48 @@ import { python_url } from "@/constants/ApiConstants";
 import { revalidatePath } from "next/cache";
 
 type AssessmentData = {
-  serviceRequest: {
-    patient: string;
-    assessmentType: string;
-    performerType: string;
-    performerName: string;
-    startDate: string;
-    endDate: string;
-  };
-  tasks: {
-    description: string;
-    type: string;
-    notes: string;
-    blockTitle: string;
-  }[];
+  patient: string;
+  assessmentType: string;
+  performerType: string;
+  performerName: string;
+  startDate: string;
+  endDate: string;
+  description?: string | null;
+  performerId?: string | null;
 };
 
-/**
- * Receives assessment data from the form and posts it to the Python backend.
- * @param data - The form data.
- * @param authToken - The user's valid access token.
- */
 export async function createAssessmentAndTasks(data: AssessmentData, authToken: string) {
-  const url = `${python_url}/create-assessment`;
+  console.log('🔍 Data received:', data);
   
   if (!authToken) {
     return { success: false, message: "Authentication error: Auth token not provided." };
   }
 
+  const url = `${python_url}/create-assessment`;
+
   try {
+    console.log('🔍 Sending payload:', JSON.stringify(data, null, 2));
+    
     const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${authToken}`
       },
       body: JSON.stringify(data),
     });
 
+    console.log('🔍 Response status:', response.status);
+
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.detail || 'Failed to create assessment.');
+      console.log('🔍 Error response:', errorData);
+      throw new Error(errorData.detail || "Failed to create assessment.");
     }
-    
-    revalidatePath("/remote-monitoring");
-    return { success: true, message: "Assessment created successfully!" };
 
+    revalidatePath("/remote-monitoring"); 
+
+    return { success: true, message: "Assessment created successfully!" };
   } catch (error) {
     if (error instanceof Error) {
       return { success: false, message: error.message };
@@ -58,10 +54,11 @@ export async function createAssessmentAndTasks(data: AssessmentData, authToken: 
   }
 }
 
-export async function getAssessmentsForPatient(patientId: string, authToken: string): Promise<FhirServiceRequest[]> {
+
+export async function getAssessmentsForPatient(patientId: string, authToken: string): Promise<any> {
   if (!authToken) {
     console.error("getAssessmentsForPatient failed: User is not authenticated.");
-    return [];
+    return null;
   }
 
   const url = `${python_url}/assessments/patient/${patientId}`;
@@ -80,11 +77,12 @@ export async function getAssessmentsForPatient(patientId: string, authToken: str
       throw new Error(errorData.detail || 'Failed to fetch patient assessments.');
     }
 
+    // Return the entire JSON bundle from the response
     const data = await response.json();
-    return data.assessments || [];
+    return data;
 
   } catch (error) {
     console.error("Error fetching patient assessments:", error);
-    return [];
+    return null;
   }
 }

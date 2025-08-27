@@ -3,12 +3,7 @@
 import { python_url } from "@/constants/ApiConstants";
 import { FhirPatient } from "@/types/global";
 
-/**
- * Searches for patients by sending a query to the backend.
- * @param query - The search term.
- * @param authToken - The user's valid access token.
- * @returns A list of matching FHIR Patient resources.
- */
+
 export async function searchPatients(query: string, authToken: string): Promise<FhirPatient[]> {
   const url = new URL(`${python_url}/search/patients`);
   url.searchParams.append("q", query);
@@ -23,7 +18,7 @@ export async function searchPatients(query: string, authToken: string): Promise<
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}` // Use the real token
+        'Authorization': `Bearer ${authToken}` 
       },
       cache: 'no-store',
     });

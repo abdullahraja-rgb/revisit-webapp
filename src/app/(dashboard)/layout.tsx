@@ -2,14 +2,14 @@
 
 import React, { useState, createContext, useContext, ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Activity, Home, Menu, Users, Shield } from 'lucide-react';
+import { LayoutDashboard, Activity, Home, Menu, Users, Shield, Building2 } from 'lucide-react';
 import Modal from '@/components/ui/Modal'; 
 import AuthComponent from '@/components/view/(dashboard)/AuthComponent';
 import LoginPage from '@/components/view/(dashboard)/LoginPage'; 
 import { AuthenticatedTemplate, UnauthenticatedTemplate } from "@azure/msal-react";
-import { useAuthRoles } from '@/hooks/useAuthRoles'; // Import your new hook
+import { useAuthRoles } from '@/hooks/useAuthRoles';
 
-// --- Create a context to provide modal functions to child pages ---
+// Create a context to provide modal functions to child pages
 type ModalContextType = {
   openModal: (content: ReactNode, size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl') => void;
   closeModal: () => void;
@@ -45,13 +45,27 @@ const SidebarLink = ({ href, icon, text, active = false }: { href: string, icon:
 function AuthenticatedView({ children }: { children: React.ReactNode }) {
     const [isSidebarOpen, setSidebarOpen] = useState(false);
     const pathname = usePathname();
-    const { isAdmin } = useAuthRoles(); // Use the hook to check the user's role
+    const { isAdmin, isOrgAdmin } = useAuthRoles();
 
-    const navLinks = [
-        { href: "/", text: "Dashboard", icon: <LayoutDashboard className="w-5 h-5 mr-3" /> },
-        { href: "/patient-browser", text: "Patient Browser", icon: <Users className="w-5 h-5 mr-3" /> },
-        { href: "/remote-monitoring", text: "Remote Assessments", icon: <Activity className="w-5 h-5 mr-3" /> },
-    ];
+    // Updated navigation links
+    const getNavLinks = () => {
+        const baseLinks = [
+            { href: "/", text: "Dashboard", icon: <LayoutDashboard className="w-5 h-5 mr-3" /> },
+            { href: "/patient-browser", text: "Patient Browser", icon: <Users className="w-5 h-5 mr-3" /> },
+            { href: "/remote-monitoring", text: "Remote Assessments", icon: <Activity className="w-5 h-5 mr-3" /> },
+        ];
+
+        if (isOrgAdmin) {
+            return [
+                ...baseLinks,
+                { href: "/org-admin", text: "Organization Dashboard", icon: <Building2 className="w-5 h-5 mr-3" /> },
+            ];
+        }
+
+        return baseLinks;
+    };
+
+    const navLinks = getNavLinks();
     
     const activeLink = navLinks
         .slice()
@@ -83,8 +97,8 @@ function AuthenticatedView({ children }: { children: React.ReactNode }) {
                         />
                     ))}
 
-                    {/* --- Conditionally render the Admin link --- */}
-                    {isAdmin && (
+                    {/*  Conditionally render the Admin link (only for full admins, not org admins) */}
+                    {isAdmin && !isOrgAdmin && (
                         <>
                             <div className="pt-2 mt-2 border-t border-neutral-200"></div>
                             <SidebarLink 

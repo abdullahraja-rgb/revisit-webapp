@@ -1,27 +1,24 @@
+
 "use server";
 
 import { python_url } from "@/constants/ApiConstants";
 
-/**
- * Calls the backend to generate a secure, short-lived SAS URL for a private blob.
- * @param blobName - The full path of the blob in the storage container.
- * @param authToken - The user's valid access token.
- * @returns The full, secure URL with the SAS token, or null on error.
- */
-export async function generateSecureModelUrl(blobName: string, authToken: string): Promise<string | null> {
-  const url = `${python_url}/generate-sas-url/${blobName}`;
 
+export async function generateSecureModelUrl(blobName: string, authToken: string): Promise<string | null> {
   if (!authToken) {
     console.error("generateSecureModelUrl failed: Auth token not provided.");
     return null;
   }
 
+  
+  const encodedBlobName = encodeURIComponent(blobName);
+  const url = `${python_url}/generate-sas-url/${encodedBlobName}`;
+
   try {
     const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'Content-Type': 'application/json',
-        // Send the real token to the backend, just like in getAssessments
+        
         'Authorization': `Bearer ${authToken}`
       },
       cache: 'no-store',

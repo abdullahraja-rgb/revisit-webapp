@@ -12,12 +12,12 @@ import { useMsal, useIsAuthenticated } from "@azure/msal-react";
 import { loginRequest } from "@/authConfig";
 import { PatientContext } from "@/contexts/PatientContext";
 
-// Helper function to format date
+// Helper function to format date, updated to match screenshot (e.g., 4 Jun 1962)
 function formatDate(isoDate: string | undefined): string {
   if (!isoDate) return "N/A";
   const date = new Date(isoDate);
   return new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
+    day: "numeric", // Changed from '2-digit'
     month: "short",
     year: "numeric",
   }).format(date);
@@ -89,12 +89,42 @@ export default function PatientProfileLayout({ children }: { children: React.Rea
     );
   }
 
-  const patientName = patient.name?.[0];
-  const displayName = patientName ? `${patientName.given.join(" ")} ${patientName.family}` : "Patient Profile";
+  // --- Data Formatting ---
+  const patientNameData = patient.name?.[0];
+  
+  // Determine the title. Prefer existing data, otherwise generate from gender.
+  let titleText = "";
+  const existingPrefix = patientNameData?.prefix?.[0];
+
+  if (existingPrefix) {
+    titleText = existingPrefix;
+  } else if (patient.gender) {
+    if (patient.gender.toLowerCase() === 'male') {
+      titleText = 'Mr';
+    } else {
+      // Per request: "mrs otherwise"
+      titleText = 'Mrs';
+    }
+  }
+
+  const title = titleText ? `(${titleText})` : "";
+
+  // Formats name as: SURNAME, Given (Title) e.g., BLOGGS, Joe (Mr)
+  const formattedPatientName = patientNameData
+    ? `${patientNameData.family?.toUpperCase()}, ${patientNameData.given?.join(" ")} ${title}`.trim()
+    : "N/A";
+    
+  // Use NHS Number for USRN field
   const nhsNumber = patient.identifier?.find(id => id.system?.includes("nhs-number"))?.value || "N/A";
+
+  // Get and capitalize gender
+  const gender = patient.gender ? patient.gender.charAt(0).toUpperCase() + patient.gender.slice(1) : "N/A";
+
   const dob = patient.birthDate;
   const formattedDob = formatDate(dob);
   const age = calculateAge(dob);
+  // Formats age string as: 56 years (4 Jun 1962)
+  const ageString = age !== null ? `${age} years (${formattedDob})` : formattedDob;
 
   const handleCreateAssessment = () => {
     openModal(<CreateAssessmentForm onClose={closeModal} patient={patient} />, "2xl");
@@ -108,24 +138,27 @@ export default function PatientProfileLayout({ children }: { children: React.Rea
 
   return (
     <PatientContext.Provider value={patient}>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            <Link href="/patient-browser" className="p-2 rounded-full hover:bg-neutral-100">
-              <ChevronLeft className="w-6 h-6 text-neutral-600" />
-            </Link>
-            <div>
-              <h1 className="text-3xl font-bold text-neutral-900">{displayName}</h1>
-              <div className="text-sm text-neutral-500 space-y-1">
-                <p>NHS Number: {nhsNumber}</p>
-                <p>DOB: {formattedDob}{age !== null ? ` (${age} years old)` : ""}</p>
-              </div>
+      <div className="space-y-4">
+        {/* Patient Information Banner - Styled to replicate the screenshot */}
+        <div className="bg-gray-200 p-2 flex items-center justify-start space-x-6 text-sm text-gray-900 border-y border-gray-300">
+          <p><span className="font-bold">NHS-NO:</span> {nhsNumber}</p>
+          <p><span className="font-bold">Patient:</span> {formattedPatientName}</p>
+          <p><span className="font-bold">Gender:</span> {gender}</p>
+          <p>{ageString}</p>
+        </div>
+
+        {/* This section now includes the back button */}
+        <div className="flex justify-between items-center px-1">
+            <div className="flex items-center space-x-2">
+                 <Link href="/patient-browser" className="p-2 rounded-full hover:bg-neutral-100" aria-label="Back to patient browser">
+                    <ChevronLeft className="w-6 h-6 text-neutral-600" />
+                </Link>
+                <h2 className="text-xl font-semibold text-neutral-800">Patient Record</h2>
             </div>
-          </div>
-          <button onClick={handleCreateAssessment} className="btn btn-primary">
-            <Plus className="w-4 h-4 mr-2" />
-            Create Assessment
-          </button>
+            <button onClick={handleCreateAssessment} className="btn btn-primary">
+                <Plus className="w-4 h-4 mr-2" />
+                Create Assessment
+            </button>
         </div>
 
         <div className="border-b border-neutral-200">

@@ -21,20 +21,23 @@ import {
   Edit,
   Eye,
 } from 'lucide-react';
+import Image from 'next/image';
 
-// Fallback for unauthorized users
+// Fallback for unauthorized users - styled like the main admin page
 const AccessDenied = () => (
   <div className="flex items-center justify-center min-h-[500px] px-4">
-    <div className="max-w-md w-full bg-gradient-to-br from-yellow-50 via-orange-50 to-red-50 rounded-2xl shadow-2xl border border-yellow-200/50 overflow-hidden">
-      <div className="relative p-8">
-        <div className="absolute inset-0 bg-gradient-to-br from-yellow-100/20 to-orange-100/20"></div>
-        <div className="relative text-center">
-          <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 shadow-xl mb-6">
-            <ShieldAlert className="h-12 w-12 text-white drop-shadow-lg" />
+    <div className="relative max-w-md w-full">
+      <div className="absolute -top-8 -right-8 w-32 h-32 bg-[#005fee]/10 transform rotate-45 rounded-2xl"></div>
+      <div className="absolute -bottom-4 -left-4 w-24 h-24 bg-[#6aa6ff]/20 transform -rotate-12 rounded-2xl"></div>
+      <div className="relative bg-[#fcfcfc] rounded-2xl shadow-2xl border border-[#005fee]/10 overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#005fee] via-[#3583f7] to-[#6aa6ff]"></div>
+        <div className="p-8 text-center">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-[#005fee] shadow-xl mb-6">
+            <ShieldAlert className="h-10 w-10 text-white" />
           </div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-3">Access Denied</h3>
-          <p className="text-gray-700 leading-relaxed">
-            You do not have the required 'Admin' role to access this page.
+          <h3 className="text-2xl font-bold text-[#4c4c4c] mb-3">Access Denied</h3>
+          <p className="text-[#4c4c4c]/70 leading-relaxed">
+            You do not have the required permissions to access this page.
           </p>
         </div>
       </div>
@@ -42,7 +45,7 @@ const AccessDenied = () => (
   </div>
 );
 
-export default function AdminPage() {
+export default function OrgAdminPage() {
   const { openModal, closeModal } = useDashboardModal();
   const { isOrgAdmin } = useAuthRoles();
 
@@ -69,29 +72,41 @@ export default function AdminPage() {
   const handleViewOrganizations = () => {
     openModal(<OrganizationHierarchyViewer />, "3xl");
   };
-
-  // Handler for managing practitioners 
+  
   const handleManagePractitioners = () => {
     openModal(<ManagePractitioners onClose={closeModal} />, "4xl");
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-[#fcfcfc]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="relative mb-16">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-indigo-600/10 to-purple-600/10 rounded-3xl blur-3xl"></div>
-          <div className="relative bg-white/90 backdrop-blur-xl rounded-3xl p-10 shadow-2xl border border-white/30">
-            <div className="flex items-center gap-6">
-              <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 shadow-2xl">
-                <ShieldCheck className="h-10 w-10 text-white" />
-              </div>
-              <div>
-                <h1 className="text-5xl font-black tracking-tight bg-gradient-to-r from-gray-900 via-blue-900 to-indigo-900 bg-clip-text text-transparent mb-2">
-                  Organisational Admin Dashboard
-                </h1>
-                <p className="text-xl text-gray-600 font-medium">
-                  Manage users, organizations, and care groups in your organisation
-                </p>
+          <div className="absolute -top-4 -right-8 w-64 h-32 bg-[#005fee]/5 transform rotate-12 rounded-3xl blur-sm"></div>
+          <div className="absolute -bottom-2 -left-4 w-48 h-24 bg-[#6aa6ff]/10 transform -rotate-6 rounded-2xl"></div>
+          <div className="relative bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl border border-[#005fee]/10 overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#005fee] via-[#3583f7] to-[#6aa6ff]"></div>
+            <div className="absolute top-0 right-0 w-32 h-full bg-gradient-to-bl from-[#005fee]/5 to-transparent"></div>
+            <div className="relative p-10">
+              <div className="flex items-center gap-8">
+                <div className="relative">
+                  <div className="absolute -inset-2 bg-[#005fee]/10 rounded-3xl transform rotate-2"></div>
+                  <div className="relative flex h-20 w-20 items-center justify-center rounded-3xl bg-[#005fee] shadow-2xl transform -rotate-2">
+                    <ShieldCheck className="h-10 w-10 text-white" />
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-4 mb-2">
+                    <Image src="/assets/images/logo/logo-icon.png" alt="HUMANT" width={120} height={40} className="h-8 w-auto" />
+                    <div className="h-8 w-px bg-[#005fee]/20"></div>
+                    <span className="text-[#4c4c4c]/60 font-medium">Humant-Revisit</span>
+                  </div>
+                  <h1 className="text-4xl font-bold tracking-tight text-[#4c4c4c] mb-2 text-balance">
+                    Organization Admin Dashboard
+                  </h1>
+                  <p className="text-lg text-[#4c4c4c]/70 font-medium text-pretty">
+                    Manage users and care groups within your organization.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -100,109 +115,107 @@ export default function AdminPage() {
         {isOrgAdmin ? (
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
             {/* User Management Card */}
-            <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-100 p-8 shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 border border-blue-200/50">
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-indigo-500/10"></div>
-              <div className="relative">
+            <div className="group relative overflow-hidden rounded-3xl bg-white shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border border-[#005fee]/10">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-[#005fee]/5 transform rotate-45 rounded-2xl"></div>
+              <div className="absolute -bottom-4 -left-4 w-16 h-16 bg-[#6aa6ff]/10 transform -rotate-12 rounded-xl"></div>
+              <div className="relative p-8">
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-xl group-hover:shadow-blue-500/50 group-hover:scale-110 transition-all duration-300">
-                    <UserPlus className="h-8 w-8 text-white" />
+                  <div className="relative">
+                    <div className="absolute -inset-1 bg-[#005fee]/10 rounded-2xl transform rotate-2 group-hover:rotate-6 transition-transform duration-300"></div>
+                    <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-[#005fee] shadow-lg group-hover:shadow-[#005fee]/30 group-hover:scale-105 transition-all duration-300 transform -rotate-2">
+                      <UserPlus className="h-8 w-8 text-white" />
+                    </div>
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
-                    <p className="text-gray-600 mt-1">Invite & manage users</p>
+                    <h2 className="text-xl font-bold text-[#4c4c4c]">User Management</h2>
+                    <p className="text-[#4c4c4c]/60 mt-1 text-sm">Invite & manage users</p>
                   </div>
                 </div>
-                <div className="space-y-4">
-                    <button onClick={handleCreatePractitioner} className="w-full btn-primary text-lg flex items-center justify-center gap-3">
-                        <UserPlus className="h-5 w-5" /> Create Practitioner
-                    </button>
-                    {/* Button for managing practitioners */}
-                    <button onClick={handleManagePractitioners} className="w-full btn-secondary text-lg flex items-center justify-center gap-3">
-                        <Edit className="h-5 w-5" /> Manage Practitioners
-                    </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-50 via-emerald-100 to-green-100 p-8 shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 border border-emerald-200/50">
-              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-green-500/10"></div>
-              <div className="relative">
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-xl group-hover:shadow-emerald-500/50 group-hover:scale-110 transition-all duration-300">
-                    <Building className="h-8 w-8 text-white" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Organizations</h2>
-                    <p className="text-gray-600 mt-1">Manage tenant organizations</p>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <button
-                    onClick={handleCreateOrganization}
-                    className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-semibold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-3 text-lg"
-                  >
-                    <Building className="h-5 w-5" />
-                    Create Organization
+                <div className="space-y-3">
+                  <button onClick={handleCreatePractitioner} className="w-full bg-[#005fee] hover:bg-[#3583f7] text-white font-semibold py-3 px-6 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 text-sm flex items-center justify-center gap-2 transform hover:-translate-y-0.5">
+                    <UserPlus className="h-4 w-4" /> Create Practitioner
                   </button>
-                  <button
-                    onClick={handleViewOrganizations}
-                    className="w-full bg-white/80 backdrop-blur-sm border-2 border-emerald-300 hover:bg-emerald-50 text-emerald-700 font-semibold py-4 px-6 rounded-xl hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-3 text-lg"
-                  >
-                    <Eye className="h-5 w-5" />
-                    View Hierarchy
+                  <button onClick={handleManagePractitioners} className="w-full bg-white border border-[#005fee]/20 hover:bg-[#005fee]/5 text-[#005fee] font-semibold py-3 px-6 rounded-2xl hover:shadow-md transition-all duration-300 text-sm flex items-center justify-center gap-2 transform hover:-translate-y-0.5">
+                    <Edit className="h-4 w-4" /> Manage Practitioners
                   </button>
                 </div>
               </div>
             </div>
-
-            <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-50 via-purple-100 to-violet-100 p-8 shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 border border-purple-200/50">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-violet-500/10"></div>
-              <div className="relative">
+            
+            {/* Organizations Card - Restored */}
+            <div className="group relative overflow-hidden rounded-3xl bg-white shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border border-[#3583f7]/10">
+              <div className="absolute top-0 left-0 w-20 h-20 bg-[#3583f7]/5 transform -rotate-12 rounded-2xl"></div>
+              <div className="absolute -bottom-2 -right-2 w-18 h-18 bg-[#6aa6ff]/10 transform rotate-45 rounded-xl"></div>
+              <div className="relative p-8">
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-xl group-hover:shadow-purple-500/50 group-hover:scale-110 transition-all duration-300">
-                    <ShieldCheck className="h-8 w-8 text-white" />
+                  <div className="relative">
+                    <div className="absolute -inset-1 bg-[#3583f7]/10 rounded-2xl transform -rotate-2 group-hover:-rotate-6 transition-transform duration-300"></div>
+                    <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-[#3583f7] shadow-lg group-hover:shadow-[#3583f7]/30 group-hover:scale-105 transition-all duration-300 transform rotate-2">
+                      <Building className="h-8 w-8 text-white" />
+                    </div>
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Org Admins</h2>
-                    <p className="text-gray-600 mt-1">Manage administrators</p>
+                    <h2 className="text-xl font-bold text-[#4c4c4c]">Organizations</h2>
+                    <p className="text-[#4c4c4c]/60 mt-1 text-sm">Manage tenant organizations</p>
                   </div>
                 </div>
-                <button
-                  onClick={handleCreateOrgAdmin}
-                  className="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-3 text-lg"
-                >
-                  <ShieldCheck className="h-5 w-5" />
-                  Create Org Admin
+                <div className="space-y-3">
+                  <button onClick={handleCreateOrganization} className="w-full bg-[#3583f7] hover:bg-[#6aa6ff] text-white font-semibold py-3 px-6 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 text-sm transform hover:-translate-y-0.5">
+                    <Building className="h-4 w-4" /> Create Organization
+                  </button>
+                  <button onClick={handleViewOrganizations} className="w-full bg-white border border-[#3583f7]/20 hover:bg-[#3583f7]/5 text-[#3583f7] font-semibold py-3 px-6 rounded-2xl hover:shadow-md transition-all duration-300 flex items-center justify-center gap-2 text-sm transform hover:-translate-y-0.5">
+                    <Eye className="h-4 w-4" /> View Hierarchy
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            {/* Org Admins Card */}
+            <div className="group relative overflow-hidden rounded-3xl bg-white shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border border-[#6aa6ff]/10">
+              <div className="absolute top-0 right-0 w-28 h-14 bg-[#6aa6ff]/5 transform rotate-12 rounded-xl"></div>
+              <div className="absolute -bottom-3 -left-3 w-20 h-20 bg-[#005fee]/5 transform -rotate-45 rounded-2xl"></div>
+              <div className="relative p-8">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="relative">
+                    <div className="absolute -inset-1 bg-[#6aa6ff]/10 rounded-2xl transform rotate-3 group-hover:rotate-12 transition-transform duration-300"></div>
+                    <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-[#6aa6ff] shadow-lg group-hover:shadow-[#6aa6ff]/30 group-hover:scale-105 transition-all duration-300 transform -rotate-3">
+                      <ShieldCheck className="h-8 w-8 text-white" />
+                    </div>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-[#4c4c4c]">Org Admins</h2>
+                    <p className="text-[#4c4c4c]/60 mt-1 text-sm">Manage administrators</p>
+                  </div>
+                </div>
+                <button onClick={handleCreateOrgAdmin} className="w-full bg-[#6aa6ff] hover:bg-[#005fee] text-white font-semibold py-3 px-6 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 text-sm transform hover:-translate-y-0.5">
+                  <ShieldCheck className="h-4 w-4" /> Create Org Admin
                 </button>
               </div>
             </div>
-
-            <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-50 via-orange-100 to-amber-100 p-8 shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 border border-orange-200/50 md:col-span-2 lg:col-span-3">
-              <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-amber-500/10"></div>
-              <div className="relative">
-                <div className="flex items-center gap-4 mb-8">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 shadow-xl group-hover:shadow-orange-500/50 group-hover:scale-110 transition-all duration-300">
-                    <Users className="h-8 w-8 text-white" />
+            
+            {/* Care Group Management Card - Restored with correct layout */}
+            <div className="group relative overflow-hidden rounded-3xl bg-white shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border border-[#005fee]/10 md:col-span-2 lg:col-span-3">
+              <div className="absolute top-0 left-0 w-40 h-20 bg-[#005fee]/5 transform rotate-6 rounded-3xl"></div>
+              <div className="absolute bottom-0 right-0 w-32 h-32 bg-[#3583f7]/5 transform -rotate-12 rounded-3xl"></div>
+              <div className="relative p-8">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="relative">
+                    <div className="absolute -inset-2 bg-[#005fee]/10 rounded-3xl transform -rotate-2 group-hover:-rotate-6 transition-transform duration-300"></div>
+                    <div className="relative flex h-16 w-16 items-center justify-center rounded-3xl bg-[#005fee] shadow-lg group-hover:shadow-[#005fee]/30 group-hover:scale-105 transition-all duration-300 transform rotate-2">
+                      <Users className="h-8 w-8 text-white" />
+                    </div>
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Care Group Management</h2>
-                    <p className="text-gray-600 mt-1">Create and manage care groups across organizations</p>
+                    <h2 className="text-xl font-bold text-[#4c4c4c]">Care Group Management</h2>
+                    <p className="text-[#4c4c4c]/60 mt-1 text-sm">Create and manage care groups across organizations</p>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-6">
-                  <button
-                    onClick={handleCreateCareGroup}
-                    className="bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white font-semibold py-4 px-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-3 text-lg"
-                  >
-                    <Users className="h-5 w-5" />
-                    Create New Care Group
+                <div className="flex flex-wrap gap-4">
+                  <button onClick={handleCreateCareGroup} className="bg-[#005fee] hover:bg-[#3583f7] text-white font-semibold py-3 px-6 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2 text-sm transform hover:-translate-y-0.5">
+                    <Users className="h-4 w-4" /> Create New Care Group
                   </button>
-                  <button
-                    onClick={handleManageCareGroups}
-                    className="bg-white/80 backdrop-blur-sm border-2 border-orange-300 hover:bg-orange-50 text-orange-700 font-semibold py-4 px-8 rounded-xl hover:shadow-lg transition-all duration-300 flex items-center gap-3 text-lg"
-                  >
-                    <Edit className="h-5 w-5" />
-                    Manage Existing Groups
+                  <button onClick={handleManageCareGroups} className="bg-white border border-[#005fee]/20 hover:bg-[#005fee]/5 text-[#005fee] font-semibold py-3 px-6 rounded-2xl hover:shadow-md transition-all duration-300 flex items-center justify-center gap-2 text-sm transform hover:-translate-y-0.5">
+                    <Edit className="h-4 w-4" /> Manage Existing Groups
                   </button>
                 </div>
               </div>

@@ -1033,230 +1033,208 @@ export const CreatePractitionerForm: React.FC<FormProps> = ({ onClose }) => {
 
 
 export const CreateOrganizationForm: React.FC<FormProps> = ({ onClose }) => {
-  const { addToast } = useToast();
-  // Get 'inProgress' state to solve the authentication race condition
-  const { instance, accounts, inProgress } = useMsal();
-  
-  const [isSubmitting, setIsSubmitting] = useState(false);
+    const { addToast } = useToast();
+    const { instance, accounts, inProgress } = useMsal();
+    
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [name, setName] = useState('');
+    const [id, setId] = useState('');
+    const [odsCode, setOdsCode] = useState('');
+    const [phone, setPhone] = useState('');
+    const [email, setEmail] = useState('');
+    const [addressLine, setAddressLine] = useState('');
+    const [city, setCity] = useState('');
+    const [postalCode, setPostalCode] = useState('');
+    const [country, setCountry] = useState('GB');
+    const [partOf, setPartOf] = useState<string | null>(null);
 
-  const [name, setName] = useState('');
-  const [id, setId] = useState('');
-  const [isIdManuallyEdited, setIsIdManuallyEdited] = useState(false);
-  const [odsCode, setOdsCode] = useState('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-  const [addressLine, setAddressLine] = useState('');
-  const [city, setCity] = useState('');
-  const [postalCode, setPostalCode] = useState('');
-  const [country, setCountry] = useState('GB');
-  const [partOf, setPartOf] = useState<string | null>(null);
+    const [organizationTree, setOrganizationTree] = useState<OrganizationNode[]>([]);
+    const [existingOrgIds, setExistingOrgIds] = useState<string[]>([]);
+    const [existingOrgNames, setExistingOrgNames] = useState<string[]>([]);
+    const [nameError, setNameError] = useState<string | null>(null);
+    const [isLoadingData, setIsLoadingData] = useState(true);
 
-  const [organizationTree, setOrganizationTree] = useState<OrganizationNode[]>([]);
-  const [existingOrgIds, setExistingOrgIds] = useState<string[]>([]);
-  const [existingOrgNames, setExistingOrgNames] = useState<string[]>([]);
-  const [nameError, setNameError] = useState<string | null>(null);
-  const [isLoadingData, setIsLoadingData] = useState(true);
-
-  const userRoles = useMemo(() => {
-    if (accounts.length > 0 && accounts[0].idTokenClaims) {
-      return (accounts[0].idTokenClaims.roles as string[]) || [];
-    }
-    return [];
-  }, [accounts]);
-
-  const isAdmin = useMemo(() => userRoles.includes('Admin'), [userRoles]);
-
-  const slugify = useCallback((text: string) => {
-    let baseSlug = text.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w\-]+/g, '').replace(/\-\-+/g, '-');
-    if (!baseSlug) return '';
-    if (existingOrgIds.includes(baseSlug)) {
-      let counter = 2;
-      while (existingOrgIds.includes(`${baseSlug}-${counter}`)) {
-        counter++;
-      }
-      return `${baseSlug}-${counter}`;
-    }
-    return baseSlug;
-  }, [existingOrgIds]);
-
-  useEffect(() => {
-    if (!isIdManuallyEdited) {
-      setId(slugify(name));
-    }
-  }, [name, isIdManuallyEdited, slugify]);
-
-  useEffect(() => {
-    const loadOrgData = async () => {
-      // Only run if authentication is complete AND we have an account.
-      if (inProgress === "none" && accounts.length > 0) {
-        setIsLoadingData(true);
-        try {
-          const tokenResponse = await instance.acquireTokenSilent({ ...loginRequest, account: accounts[0] });
-          const response = await getOrganizationTree(tokenResponse.accessToken);
-          
-          // --- CONSOLE LOG #1: What is the server action returning to the component? ---
-          console.log("API Response received in form:", response);
-
-          setOrganizationTree(response?.tree ?? []);
-          setExistingOrgIds(response?.existingIds ?? []);
-          setExistingOrgNames(response?.existingNames?.map(n => n.toLowerCase()) ?? []);
-
-        } catch (error) {
-          console.error("Failed to load organization data:", error);
-          addToast({ title: 'Error', description: 'Could not load organizations.', variant: 'destructive' });
-          setOrganizationTree([]);
-          setExistingOrgIds([]);
-          setExistingOrgNames([]);
-        } finally {
-          setIsLoadingData(false);
+    const userRoles = useMemo(() => {
+        if (accounts.length > 0 && accounts[0].idTokenClaims) {
+            return (accounts[0].idTokenClaims.roles as string[]) || [];
         }
-      }
+        return [];
+    }, [accounts]);
+
+    const isAdmin = useMemo(() => userRoles.includes('Admin'), [userRoles]);
+
+    const slugify = useCallback((text: string) => {
+        let baseSlug = text.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w\-]+/g, '').replace(/\-\-+/g, '-');
+        if (!baseSlug) return '';
+        if (existingOrgIds.includes(baseSlug)) {
+            let counter = 2;
+            while (existingOrgIds.includes(`${baseSlug}-${counter}`)) {
+                counter++;
+            }
+            return `${baseSlug}-${counter}`;
+        }
+        return baseSlug;
+    }, [existingOrgIds]);
+
+    useEffect(() => {
+        setId(slugify(name));
+    }, [name, slugify]);
+
+    useEffect(() => {
+        const loadOrgData = async () => {
+            if (inProgress === "none" && accounts.length > 0) {
+                setIsLoadingData(true);
+                try {
+                    const tokenResponse = await instance.acquireTokenSilent({ ...loginRequest, account: accounts[0] });
+                    const response = await getOrganizationTree(tokenResponse.accessToken);
+                    
+                    setOrganizationTree(response?.tree ?? []);
+                    setExistingOrgIds(response?.existingIds ?? []);
+                    setExistingOrgNames(response?.existingNames?.map(n => n.toLowerCase()) ?? []);
+                } catch (error) {
+                    console.error("Failed to load organization data:", error);
+                    addToast({ title: 'Error', description: 'Could not load organizations.', variant: 'destructive' });
+                } finally {
+                    setIsLoadingData(false);
+                }
+            }
+        };
+        loadOrgData();
+    }, [accounts, instance, inProgress, addToast]);
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            if (name && existingOrgNames.includes(name.toLowerCase())) {
+                setNameError('This organization name is already in use.');
+            } else {
+                setNameError(null);
+            }
+        }, 500);
+        return () => clearTimeout(handler);
+    }, [name, existingOrgNames]);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!name || !id || !phone || !email || !addressLine || !city || !postalCode || !country) {
+            addToast({ title: "Validation Error", description: "Please fill out all required fields.", variant: "destructive" });
+            return;
+        }
+
+        if (!isAdmin && !partOf) {
+            addToast({ title: "Validation Error", description: "You must select a parent organization.", variant: "destructive" });
+            return;
+        }
+
+        if (nameError) {
+            addToast({ title: 'Validation Error', description: nameError, variant: 'destructive' });
+            return;
+        }
+        
+        setIsSubmitting(true);
+        try {
+            const tokenResponse = await instance.acquireTokenSilent({ ...loginRequest, account: accounts[0] });
+            const result = await createOrganization(
+                { name, id, odsCode, phone, email, addressLine, city, postalCode, country, partOf },
+                tokenResponse.accessToken
+            );
+            if (result.success) {
+                addToast({ title: "Success", description: result.message });
+                onClose();
+            } else {
+                addToast({ title: "Error", description: result.message, variant: "destructive" });
+            }
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred.";
+            addToast({ title: "Error", description: errorMessage, variant: "destructive" });
+        } finally {
+            setIsSubmitting(false);
+        }
     };
-    loadOrgData();
-  }, [accounts, instance, inProgress, addToast]); // Added 'inProgress' to dependency array
 
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      if (name && existingOrgNames.includes(name.toLowerCase())) {
-        setNameError('This organization name is already in use.');
-      } else {
-        setNameError(null);
-      }
-    }, 500);
-    return () => clearTimeout(handler);
-  }, [name, existingOrgNames]);
+    const renderOrgOptions = (nodes: OrganizationNode[], depth = 0): JSX.Element[] => {
+        return nodes.flatMap((node) => [
+            <option key={node.id} value={node.id}>
+                {" ".repeat(depth * 4)}{depth > 0 && '└─ '}{node.name}
+            </option>,
+            ...(node.children ? renderOrgOptions(node.children, depth + 1) : []),
+        ]);
+    };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name || !id || !phone || !email || !addressLine || !city || !postalCode || !country) {
-      addToast({ title: "Validation Error", description: "Please fill out all required fields.", variant: "destructive" });
-      return;
-    }
+    return (
+        <form onSubmit={handleSubmit} className="space-y-8 max-h-[80vh] overflow-y-auto pr-4">
+            <div><h2 className="text-2xl font-bold">Create New Organization</h2></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label className="form-label">Name *</label>
+                    <div className="relative">
+                        <input value={name} onChange={(e) => setName(e.target.value)} className={`form-input pr-10 ${nameError ? 'border-red-500' : ''}`} required />
+                        {name && !nameError && <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-green-500" />}
+                    </div>
+                    {nameError && <p className="text-sm text-red-600 mt-1">{nameError}</p>}
+                </div>
 
-    if (!isAdmin && !partOf) {
-        addToast({ title: "Validation Error", description: "You must select a parent organization.", variant: "destructive" });
-        return;
-    }
+                <div>
+                    <label className="form-label">ID *</label>
+                    <input value={id} className="form-input bg-neutral-100 cursor-not-allowed" required readOnly />
+                    <p className="text-xs text-neutral-500 mt-1">ID is auto-generated from the organization name.</p>
+                </div>
 
-    if (nameError) {
-      addToast({ title: 'Validation Error', description: nameError, variant: 'destructive' });
-      return;
-    }
-    if (accounts.length === 0) {
-      addToast({ title: "Auth Error", description: "No user signed in.", variant: "destructive" });
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      const tokenResponse = await instance.acquireTokenSilent({ ...loginRequest, account: accounts[0] });
-      const result = await createOrganization(
-        { name, id, odsCode, phone, email, addressLine, city, postalCode, country, partOf },
-        tokenResponse.accessToken
-      );
-      if (result.success) {
-        addToast({ title: "Success", description: result.message });
-        onClose();
-      } else {
-        addToast({ title: "Error", description: result.message, variant: "destructive" });
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred.";
-      addToast({ title: "Error", description: errorMessage, variant: "destructive" });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+                <div>
+                    <label className="form-label">Phone *</label>
+                    <input value={phone} onChange={(e) => setPhone(e.target.value)} className="form-input" required />
+                </div>
 
-  const renderOrgOptions = (nodes: OrganizationNode[], depth = 0): JSX.Element[] => {
-    return nodes.flatMap((node) => [
-      <option key={node.id} value={node.id}>
-        {" ".repeat(depth * 2)}{depth > 0 && '└ '}{node.name}
-      </option>,
-      ...(node.children ? renderOrgOptions(node.children, depth + 1) : []),
-    ]);
-  };
+                <div>
+                    <label className="form-label">Email *</label>
+                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="form-input" required />
+                </div>
 
-  // --- CONSOLE LOG #2: What is the state variable being used for validation? ---
-  console.log("Current 'existingOrgNames' state for validation:", existingOrgNames);
+                <div>
+                    <label className="form-label">Address Line *</label>
+                    <input value={addressLine} onChange={(e) => setAddressLine(e.target.value)} className="form-input" required />
+                </div>
 
-  return (
-    <form onSubmit={handleSubmit} className="space-y-8 max-h-[80vh] overflow-y-auto pr-4">
-      <div><h2 className="text-2xl font-bold">Create New Organization</h2></div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className="form-label">Name *</label>
-          <div className="relative">
-            <input value={name} onChange={(e) => setName(e.target.value)} className={`form-input pr-10 ${nameError ? 'border-red-500' : ''}`} required />
-            {name && !nameError && <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-green-500" />}
-          </div>
-          {nameError && <p className="text-sm text-red-600 mt-1">{nameError}</p>}
-        </div>
+                <div>
+                    <label className="form-label">City *</label>
+                    <input value={city} onChange={(e) => setCity(e.target.value)} className="form-input" required />
+                </div>
 
-        <div>
-          <label className="form-label">ID *</label>
-          <div className="flex items-center gap-2">
-            <input value={id} onChange={(e) => setId(e.target.value)} className="form-input" required disabled={!isIdManuallyEdited} />
-            <button type="button" onClick={() => setIsIdManuallyEdited(!isIdManuallyEdited)} className="btn-secondary p-2" title="Manually edit ID"><Edit className="w-4 h-4" /></button>
-          </div>
-          {!isIdManuallyEdited && <p className="text-xs text-neutral-500 mt-1">ID is auto-generated. Click edit to change it manually.</p>}
-        </div>
+                <div>
+                    <label className="form-label">Postal Code *</label>
+                    <input value={postalCode} onChange={(e) => setPostalCode(e.target.value)} className="form-input" required />
+                </div>
 
-        <div>
-          <label className="form-label">Phone *</label>
-          <input value={phone} onChange={(e) => setPhone(e.target.value)} className="form-input" required />
-        </div>
+                <div>
+                    <label className="form-label">Country *</label>
+                    <select value={country} onChange={(e) => setCountry(e.target.value)} className="form-input" required>
+                        {countryOptions.map(([code, name]) => (
+                            <option key={code} value={code}>{name}</option>
+                        ))}
+                    </select>
+                </div>
 
-        <div>
-          <label className="form-label">Email *</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="form-input" required />
-        </div>
+                <div>
+                    <label className="form-label">ODS Code</label>
+                    <input value={odsCode} onChange={(e) => setOdsCode(e.target.value)} className="form-input" placeholder="e.g., RR8" />
+                </div>
 
-        <div>
-          <label className="form-label">Address Line *</label>
-          <input value={addressLine} onChange={(e) => setAddressLine(e.target.value)} className="form-input" required />
-        </div>
+                <div className="col-span-full">
+                    <label className="form-label">Parent Organization</label>
+                    <select value={partOf || ""} onChange={(e) => setPartOf(e.target.value || null)} className="form-input" disabled={isLoadingData}>
+                        {isAdmin && <option value="">None (Top-Level Organization)</option>}
+                        {renderOrgOptions(organizationTree)}
+                    </select>
+                </div>
+            </div>
 
-        <div>
-          <label className="form-label">City *</label>
-          <input value={city} onChange={(e) => setCity(e.target.value)} className="form-input" required />
-        </div>
-
-        <div>
-          <label className="form-label">Postal Code *</label>
-          <input value={postalCode} onChange={(e) => setPostalCode(e.target.value)} className="form-input" required />
-        </div>
-
-        <div>
-          <label className="form-label">Country *</label>
-          <select value={country} onChange={(e) => setCountry(e.target.value)} className="form-input" required>
-            {countryOptions.map(([code, name]) => (
-              <option key={code} value={code}>{name}</option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="form-label">ODS Code</label>
-          <input value={odsCode} onChange={(e) => setOdsCode(e.target.value)} className="form-input" placeholder="e.g., RR8" />
-        </div>
-
-        <div className="col-span-full">
-          <label className="form-label">Parent Organization</label>
-          <select value={partOf || ""} onChange={(e) => setPartOf(e.target.value || null)} className="form-input" disabled={isLoadingData}>
-            {isAdmin && <option value="">None (Top-Level Organization)</option>}
-            {renderOrgOptions(organizationTree)}
-          </select>
-        </div>
-      </div>
-
-      <div className="flex justify-end space-x-3 pt-4 border-t mt-8">
-        <button type="button" onClick={onClose} className="btn-secondary" disabled={isSubmitting}>Cancel</button>
-        <button type="submit" className="btn-primary" disabled={isSubmitting || !!nameError}>
-          {isSubmitting ? "Saving..." : "Create Organization"}
-        </button>
-      </div>
-    </form>
-  );
+            <div className="flex justify-end space-x-3 pt-4 border-t mt-8">
+                <button type="button" onClick={onClose} className="btn-secondary" disabled={isSubmitting}>Cancel</button>
+                <button type="submit" className="btn-primary" disabled={isSubmitting || !!nameError}>
+                    {isSubmitting ? "Saving..." : "Create Organization"}
+                </button>
+            </div>
+        </form>
+    );
 };
 
 // =====================================================================

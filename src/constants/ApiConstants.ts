@@ -1,1 +1,1 @@
-export const python_url = process.env.PYTHON_URI;
+export const python_url = process.env.NEXT_PUBLIC_PYTHON_URI;

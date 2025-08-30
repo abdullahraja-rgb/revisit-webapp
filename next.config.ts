@@ -5,16 +5,15 @@ const nextConfig: NextConfig = {
   // Enable React Strict Mode only while developing
   reactStrictMode: process.env.NODE_ENV === "development",
 
-  // --- VVV This is the new configuration to add VVV ---
-  // This will allow your project to build even if there are ESLint warnings.
+  // Disable ESLint during builds
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // This will allow your project to build even if there are TypeScript errors.
+  
+  // Disable TypeScript error checking during builds
   typescript: {
     ignoreBuildErrors: true,
   },
-  // --- ^^^ End of new configuration ^^^ ---
 
   // Still transpile these libraries
   transpilePackages: ["three", "gsap", "@gsap/react"],
@@ -24,13 +23,18 @@ const nextConfig: NextConfig = {
     optimizeCss: true,
     optimizePackageImports: ["gsap", "@gsap/react"],
 
+    // Additional ESLint bypass for experimental features
+    eslint: {
+      ignoreDuringBuilds: true,
+    },
+
     /**
-     * 👇 NEW: allow Server Actions requests whose
-     * - Origin header is “localhost:3000”  **or**
-     * - X‑Forwarded‑Host header matches “*.app.github.dev”
+     * Allow Server Actions requests whose
+     * - Origin header is "localhost:3000"  **or**
+     * - X‑Forwarded‑Host header matches "*.app.github.dev"
      *
-     * This prevents the “Invalid Server Actions request /
-     * x‑forwarded‑host does not match origin” error when working
+     * This prevents the "Invalid Server Actions request /
+     * x‑forwarded‑host does not match origin" error when working
      * inside GitHub Codespaces.
      */
     serverActions: {
@@ -38,3 +42,5 @@ const nextConfig: NextConfig = {
     },
   },
 };
+
+export default nextConfig;

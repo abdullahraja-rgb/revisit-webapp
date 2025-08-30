@@ -5,7 +5,7 @@ export const msalConfig: Configuration = {
   auth: {
     clientId: "745b0eb2-e5dd-4571-98f3-b220f4372cad", 
     authority: "https://login.microsoftonline.com/38e0cb6f-6c14-4c7b-b839-15aefab7386f", 
-    redirectUri: "http://localhost:3000" // Or your Codespaces URL
+    redirectUri: "https://revisit-webapp.onrender.com" // Or your Codespaces URL
   },
   cache: {
     cacheLocation: "sessionStorage",
